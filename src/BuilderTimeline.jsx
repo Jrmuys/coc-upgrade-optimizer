@@ -54,9 +54,10 @@ export default function BuilderTimeline({
                     ? Number(t.end)
                     : (t.start || 0) + (t.duration || 0);
             const end = new Date(Number(endEpoch) * 1000);
-            const trackingKey = taskKeyFn
-                ? taskKeyFn(t)
-                : t.key || `${t.id}|L${t.level}|#${t.iter || 0}`;
+            const fallbackKey =
+                t.key ||
+                (t.id ? `${t.id}|L${t.level}|#${t.iter || 0}` : `task-${i}`);
+            const trackingKey = taskKeyFn ? taskKeyFn(t) : fallbackKey;
             const isDone = doneKeys?.has(trackingKey);
 
             const nameKey = t.id || t.text || t.name || '';
@@ -80,7 +81,7 @@ export default function BuilderTimeline({
             const content = `${label} (${durLabel})`;
 
             return {
-                id: t.key || t.id || `task-${i}`,
+                id: trackingKey || fallbackKey,
                 group: Number(t.worker || 0),
                 start,
                 end,
@@ -138,11 +139,15 @@ export default function BuilderTimeline({
             timelineRef.current.on('select', ({ items: selected }) => {
                 if (!selected?.length) return;
                 const selectedId = String(selected[0]);
-                const selectedTask = tasks.find(
-                    (task, index) =>
-                        String(task.key || task.id || `task-${index}`) ===
-                        selectedId,
-                );
+                const selectedTask = tasks.find((task, index) => {
+                    const fallback =
+                        task.key ||
+                        (task.id
+                            ? `${task.id}|L${task.level}|#${task.iter || 0}`
+                            : `task-${index}`);
+                    const key = taskKeyFn ? taskKeyFn(task) : fallback;
+                    return String(key || fallback) === selectedId;
+                });
                 if (selectedTask) onToggle(selectedTask);
                 timelineRef.current?.setSelection([]);
             });

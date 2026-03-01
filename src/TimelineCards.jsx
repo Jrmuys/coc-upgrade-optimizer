@@ -56,6 +56,12 @@ export function TimelineCards({
 
     // Chronological order
     const sorted = [...tasks].sort((a, b) => a.start - b.start);
+    const deriveKey = (task, index) => {
+        if (taskKeyFn) return taskKeyFn(task);
+        if (task.key) return task.key;
+        if (task.id) return `${task.id}|L${task.level}|#${task.iter || 0}`;
+        return `task-card-${index}`;
+    };
     const workers = tasks.map((item) => item.worker);
     const numWorkers = [...new Set(workers)];
     let makespan = [];
@@ -71,7 +77,7 @@ export function TimelineCards({
         <div className="space-y-2">
             {sorted.map((t, i) => {
                 const dur = Math.max(0, t.duration);
-                const k = taskKeyFn(t);
+                const k = deriveKey(t, i);
                 const isDone = doneKeys?.has(k);
                 const workerTasks = sorted.filter((x) => x.worker === t.worker);
                 const workerStart = Math.min(
