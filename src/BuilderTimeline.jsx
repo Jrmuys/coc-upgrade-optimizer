@@ -43,7 +43,7 @@ export default function BuilderTimeline({
         );
         const groups = workers.map((w) => ({
             id: w,
-            content: `<b>Builder ${Number(w) + 1}</b>`,
+            content: `<div style="color: #b0b0b0; font-weight: 600; font-size: 13px;">Builder ${Number(w) + 1}</div>`,
         }));
 
         // create items for vis-timeline
@@ -60,7 +60,15 @@ export default function BuilderTimeline({
             const isDone = doneKeys?.has(trackingKey);
 
             const nameKey = t.id || t.text || t.name || '';
-            const color = BUILDING_COLORS[nameKey] || '#60a5fa'; // fallback blue
+            let color = BUILDING_COLORS[nameKey] || '#60a5fa'; // fallback blue
+
+            // Darken the color for better contrast with white text
+            // Convert hex to RGB, darken, convert back
+            const hex = color.replace('#', '');
+            const r = Math.max(0, parseInt(hex.substring(0, 2), 16) * 0.5);
+            const g = Math.max(0, parseInt(hex.substring(2, 4), 16) * 0.5);
+            const b = Math.max(0, parseInt(hex.substring(4, 6), 16) * 0.5);
+            color = `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
 
             const label = `${String(t.id)
                 .replaceAll('_', ' ')
@@ -79,15 +87,15 @@ export default function BuilderTimeline({
                 content,
                 title: `${content}${isDone ? ' (done)' : ''}`,
                 style: `
-					background: ${isDone ? '#94a3b8' : color};
-					border: 1px solid #0f172a;
-					border-radius: 6px;
-					color: #fff;
+					background: ${isDone ? '#3a3a3a' : color};
+					border: 1px solid #222222;
+					border-radius: 3px;
+					color: #ffffff;
 					font-size: 12px;
 					font-weight: 600;
-					padding: 2px 6px;
+					padding: 3px 6px;
 					white-space: nowrap;
-					opacity: ${isDone ? 0.65 : 1};
+					opacity: ${isDone ? 0.5 : 0.95};
 				`,
             };
         });
@@ -114,6 +122,9 @@ export default function BuilderTimeline({
             min: new Date(start * 1000),
             start: new Date(start * 1000),
             end: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+            showMajorLabels: true,
+            showMinorLabels: true,
+            showCurrentTime: true,
         };
 
         timelineRef.current = new Timeline(
@@ -137,33 +148,63 @@ export default function BuilderTimeline({
             });
         }
 
-        // minimal CSS for bars + labels
-        const styleId = 'gantt-color-styles';
-        const oldStyle = document.getElementById(styleId);
-        if (oldStyle) oldStyle.remove();
+        // Minimal dark theme color overrides
+        const styleId = 'gantt-dark-theme';
+        let styleEl = document.getElementById(styleId);
+        if (styleEl) styleEl.remove();
 
-        const styleEl = document.createElement('style');
+        styleEl = document.createElement('style');
         styleEl.id = styleId;
         styleEl.textContent = `
-      .vis-item {
-        border-radius: 4px;
-        color: #0f172a !important;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 2px 6px;
-        white-space: nowrap;
-      }
-      .vis-item .vis-item-content {
-        background: transparent !important;
-      }
+      /* Remove outer border */
       .vis-timeline {
         border: none !important;
       }
+      
+      /* Dark backgrounds */
+      .vis-panel.vis-left,
+      .vis-panel.vis-top,
+      .vis-labelset,
+      .vis-time-axis {
+        background: #0a0a0a !important;
+      }
+      
+      /* ALL borders dark gray - comprehensive */
+      .vis-panel,
       .vis-panel.vis-left,
       .vis-panel.vis-right,
       .vis-panel.vis-top,
-      .vis-panel.vis-bottom {
-        border: none !important;
+      .vis-panel.vis-bottom,
+      .vis-panel.vis-center,
+      .vis-labelset,
+      .vis-time-axis,
+      .vis-content,
+      .vis-label,
+      .vis-group {
+        border-color: #333333 !important;
+      }
+      
+      /* Text colors */
+      .vis-label,
+      .vis-text {
+        color: #b0b0b0 !important;
+      }
+      
+      /* Task items */
+      .vis-item {
+        color: #ffffff !important;
+        box-shadow: none !important;
+      }
+      
+      /* Grid lines dark */
+      .vis-grid.vis-vertical,
+      .vis-grid.vis-horizontal,
+      .vis-grid.vis-minor,
+      .vis-grid.vis-major {
+        border-color: #333333 !important;
+      }
+      .vis-grid.vis-major {
+        border-color: #444444 !important;
       }
     `;
         document.head.appendChild(styleEl);
@@ -181,11 +222,12 @@ export default function BuilderTimeline({
     return (
         <div
             style={{
-                padding: 10,
+                padding: 0,
                 width: '100%',
-                border: '1px solid #e6edf3',
-                borderRadius: 8,
-                background: '#fff',
+                border: '1px solid #333333',
+                borderRadius: 12,
+                background: '#111111',
+                overflow: 'hidden',
             }}
         >
             <div ref={ref} />

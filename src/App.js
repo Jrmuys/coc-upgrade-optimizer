@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import clsx from 'clsx';
 import { generateSchedule } from './scheduler.js';
-import './App.css';
 import { BUILDING_COLORS } from './colorMap';
 import { TimelineCards } from './TimelineCards.jsx';
 import BuilderTimeline from './BuilderTimeline.jsx';
@@ -95,106 +93,58 @@ export function JsonInput({
     };
 
     return (
-        <div style={{ display: 'grid', gap: 8, width: '100%' }}>
-            <span className="builder-bonus-label">
-                Paste your village JSON data
-            </span>
-            {/* <label style={{ fontSize: 13, color: "#64748b" }}>{label}</label> */}
+        <div className="space-y-2">
+            <label className="text-xs font-semibold text-dark-100 uppercase tracking-wide\">
+                Village JSON Data
+            </label>
 
             <textarea
                 ref={areaRef}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                // onMouseUp={saveSize}                 // save new size after drag
-                placeholder='{"foo": 1, "bar": [2,3]}'
+                placeholder='{"tag":"#EXAMPLE","buildings":[...]}'
                 spellCheck={false}
-                style={{
-                    display: 'block', // stays in normal flow so others reflow
-                    width: '100%', // initial/persisted size
-                    height: '20vh',
-                    // minWidth: "30vw",
-                    minHeight: '10vh',
-                    // maxWidth: "100%",    // 👈 cap width
-                    maxHeight: '20vh',
-                    boxSizing: 'border-box',
-                    resize: 'none', // 👈 enables horizontal + vertical resize
-                    overflow: 'auto',
-                    fontFamily:
-                        'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-                    fontSize: 13,
-                    padding: 12,
-                    borderRadius: 10,
-                    border: `1px solid ${isValid ? '#cbd5e1' : '#fca5a5'}`,
-                    outline: 'none',
-                    background: '#fff',
-                    color: '#0f172a',
-                    boxShadow: isValid
-                        ? 'none'
-                        : '0 0 0 3px rgba(239,68,68,0.12)',
-                }}
+                className={`input-modern w-full h-[14vh] resize-none font-mono text-xs p-3 rounded-lg ${
+                    isValid
+                        ? 'border-dark-700'
+                        : 'border-red-500/50 bg-red-950/20 ring-2 ring-red-500/20'
+                }`}
             />
 
-            <div
-                style={{
-                    display: 'flex',
-                    gap: 8,
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                }}
-            >
-                <button onClick={handleFormat} style={btnSecondary}>
-                    Format
+            <div className="flex gap-2 items-center\">
+                <button
+                    onClick={handleFormat}
+                    className="px-3 py-1.5 bg-dark-800 border border-dark-700 hover:border-amber-400/50 text-dark-100 text-xs font-medium rounded-lg transition-all hover:bg-dark-750\"
+                >
+                    Format JSON
                 </button>
-                <button onClick={handleClear} style={btnGhost}>
+                <button
+                    onClick={handleClear}
+                    className="px-5 py-2.5 bg-dark-800 border border-dark-700 hover:border-red-500/50 text-dark-100 text-sm font-medium rounded-xl transition-all hover:bg-dark-750"
+                >
                     Clear
                 </button>
 
-                <span
-                    style={{
-                        marginLeft: 15,
-                        fontSize: 12,
-                        color: isValid ? '#16a34a' : '#ef4444',
-                        fontWeight: 600,
-                    }}
+                <div className="flex-1"></div>
+
+                <div
+                    className={`flex items-center gap-2 text-sm font-semibold ${
+                        isValid ? 'text-amber-400' : 'text-red-400'
+                    }`}
                 >
+                    <div
+                        className={`w-2 h-2 rounded-full ${
+                            isValid ? 'bg-amber-400' : 'bg-red-400'
+                        }`}
+                    ></div>
                     {isValid ? 'Valid JSON' : 'Invalid JSON'}
-                </span>
+                </div>
             </div>
 
-            {error && (
-                <div style={{ fontSize: 12, color: '#b91c1c' }}>{error}</div>
-            )}
+            {error && <div className="text-sm text-red-400 mt-2">{error}</div>}
         </div>
     );
 }
-
-const btnBase = {
-    padding: '8px 12px',
-    borderRadius: 10,
-    fontWeight: 600,
-    cursor: 'pointer',
-    border: '1px solid',
-};
-const btnSecondary = {
-    ...btnBase,
-    background: '#fff',
-    color: '#0f172a',
-    borderColor: '#cbd5e1',
-};
-const btnGhost = {
-    ...btnBase,
-    background: 'transparent',
-    color: '#0f172a',
-    borderColor: '#e5e7eb',
-};
-
-// 20-color palette (good contrast with black text)
-// const PALETTE = [
-//   "#A1C9F5", "#B3E0C9", "#89D9D9", "#C4E8D7", "#A4E5F5", "#F6C8E6", "#E0BBE4", "#F5C5C7",
-//   "#D0B4F5", "#F5D6E1", "#FDFD96", "#FEE1C7", "#FAD2A6", "#FCE7A4", "#FFDDAA", "#C9D7F5",
-//   "#BDECB6", "#FAD2D4", "#D4A5A5", "#A2CFFE", "#CEF6D3", "#D9B3E0", "#D2C4D2", "#FBC0B3",
-//   "#FFB7B2", "#B8D8F4", "#B2EBF2", "#ECC9EE", "#DDA0DD", "#FAD4D4"
-// ];
 
 const taskKey = (t) => t.key || `${t.id}|L${t.level}|#${t.iter || 0}`;
 
@@ -440,580 +390,344 @@ export default function App() {
     }, [tasks, doneKeys, startTime]);
 
     return (
-        <div
-            className={clsx('app-wrap', 'light')}
-            style={{ minHeight: '100vh', background: undefined }}
-        >
-            <div
-                className="card"
-                style={{
-                    boxShadow: '0 8px 32px rgba(37,99,235,0.10)',
-                    borderRadius: 18,
-                }}
-            >
-                <div
-                    className="header"
-                    style={{
-                        background:
-                            'linear-gradient(90deg, #2563eb 0%, #60a5fa 100%)',
-                        borderRadius: '12px',
-                        padding: '24px',
-                        color: '#fff',
-                        marginBottom: 18,
-                        boxShadow: '0 4px 16px rgba(37,99,235,0.10)',
-                        position: 'relative',
-                    }}
-                >
-                    <div
-                        className="title"
-                        style={{
-                            fontSize: 28,
-                            fontWeight: 700,
-                            letterSpacing: '-1px',
-                        }}
-                    >
-                        Smart Village Tracker
-                    </div>
-                    <div
-                        className="subtitle"
-                        style={{
-                            fontSize: 15,
-                            color: '#e0e7ff',
-                            justifyItems: 'center',
-                        }}
-                    >
-                        Track progress, predict next upgrades, and optimize your
-                        builder queue
-                    </div>
-                    {/* <button
-            className="button ghost"
-            style={{ position: "absolute", top: 24, right: 24, fontSize: 14, padding: "6px 14px" }}
-            onClick={() => setDark(d => !d)}
-            aria-label="Toggle dark mode"
-          >{dark ? "☀️ Light" : "🌙 Dark"}</button> */}
-                </div>
+        <div className="min-h-screen bg-dark-850">
+            {/* Subtle grid background */}
+            <div className="fixed inset-0 bg-[linear-gradient(to_right,#1a1a1a_1px,transparent_1px),linear-gradient(to_bottom,#1a1a1a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)] pointer-events-none"></div>
 
-                <div className="field" style={{ padding: 10 }}>
-                    <h2 style={{ marginTop: 10, marginBottom: 10 }}>
-                        Introduction
-                    </h2>
-                    This smart tracker helps you plan and monitor your Clash of
-                    Clans village upgrades in one place. It takes your exported
-                    village data, generates detailed schedules, and lets you
-                    track completed upgrades with persistent progress. You can
-                    find the original optimizer project{' '}
-                    <b>
-                        <a
-                            href="https://github.com/SamBro2901/coc-upgrade-optimizer"
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            here
-                        </a>
-                    </b>
-                    .
-                    <h3 style={{ marginTop: 25, marginBottom: 10 }}>
-                        How to Use
-                    </h3>
-                    <ol style={{ paddingLeft: 30 }}>
-                        <li>
-                            <b style={{ color: '#000000ff' }}>
-                                Extract your JSON data:
-                            </b>{' '}
-                            Go to your in-game settings and tap on the{' '}
-                            <b>"More Settings"</b> button. On this page, scroll
-                            down until you find the <b>"Data Export"</b> section
-                            and click on the <b>"Copy"</b> button.
-                        </li>
-                        <li>
-                            <b style={{ color: '#000000ff' }}>
-                                Paste and validate the data:
-                            </b>{' '}
-                            Once you have the JSON copied to your clipboard,
-                            paste the data in the text box below. You can see if
-                            the data you pasted is valid by reading the feedback
-                            under the text box.
-                        </li>
-                        <li>
-                            <b style={{ color: '#000000ff' }}>
-                                Generate the schedule:
-                            </b>{' '}
-                            Click on either the <b>"Generate SPT"</b> or{' '}
-                            <b>"Generate LPT"</b> button to generate the
-                            respective upgrade schedule.
-                        </li>
-                        <li>
-                            <b style={{ color: '#000000ff' }}>
-                                Track your progress:
-                            </b>{' '}
-                            Both timeline cards and timeline chart are
-                            generated. Click an upgrade in either view to mark
-                            it complete and persist your tracker progress for
-                            that village and schedule mode.
-                        </li>
-                    </ol>
+            <div className="relative">
+                <div className="max-w-7xl mx-auto px-6 py-8">
+                    <h1 className="text-2xl font-bold text-dark-100 mb-6">
+                        CoC Upgrade Tracker
+                    </h1>
                 </div>
-
-                {/* Controls */}
-                <div className="field" style={{ maxWidth: '100%' }}>
-                    <div className="input-div" style={{ marginBottom: 20 }}>
-                        <div
-                            className="active-time-container"
-                            style={{ maxWidth: 936 }}
-                        >
+                {/* Controls Section */}
+                <div className="max-w-7xl mx-auto px-6">
+                    <div className="glass-card rounded-2xl p-5 mb-6 border border-dark-600">
+                        <h2 className="text-lg font-bold text-dark-100 mb-4">
+                            Schedule Generator
+                        </h2>
+                        <div className="grid lg:grid-cols-[1fr,auto] gap-4 mb-0">
                             <JsonInput
                                 label="Paste village JSON data"
                                 initial={`{"tag":"#GU2QV0Y8Q","timestamp":${Math.floor(Date.now() / 1000)},"buildings":[{"data":1000008,"lvl":10,"gear_up":1},{"data":1000011,"lvl":5,"timer":24973},{"data":1000019,"lvl":4,"timer":28511},{"data":1000019,"lvl":4,"timer":28517},{"data":1000005,"lvl":8,"timer":12591},{"data":1000011,"lvl":4,"timer":5143},{"data":1000000,"lvl":6,"cnt":4},{"data":1000001,"lvl":8,"cnt":1},{"data":1000002,"lvl":11,"cnt":6},{"data":1000003,"lvl":8,"cnt":1},{"data":1000003,"lvl":11,"cnt":2},{"data":1000004,"lvl":11,"cnt":2},{"data":1000004,"lvl":12,"cnt":4},{"data":1000005,"lvl":11,"cnt":2},{"data":1000006,"lvl":10,"cnt":1},{"data":1000007,"lvl":6,"cnt":1},{"data":1000008,"lvl":10,"cnt":4},{"data":1000009,"lvl":9,"cnt":5},{"data":1000010,"lvl":8,"cnt":225},{"data":1000011,"lvl":6,"cnt":1},{"data":1000012,"lvl":6,"cnt":3},{"data":1000013,"lvl":6,"cnt":4},{"data":1000014,"lvl":4,"cnt":1},{"data":1000015,"lvl":1,"cnt":5},{"data":1000019,"lvl":1,"cnt":1},{"data":1000020,"lvl":3,"cnt":1},{"data":1000023,"lvl":3,"cnt":2},{"data":1000024,"lvl":4,"cnt":1},{"data":1000026,"lvl":4,"cnt":1},{"data":1000028,"lvl":4,"cnt":1},{"data":1000029,"lvl":2,"cnt":1},{"data":1000032,"lvl":2,"cnt":1},{"data":1000070,"lvl":1,"cnt":1},{"data":1000071,"lvl":2,"cnt":1}],"traps":[{"data":12000000,"lvl":5,"cnt":6},{"data":12000001,"lvl":1,"cnt":2},{"data":12000001,"lvl":2,"cnt":4},{"data":12000002,"lvl":1,"cnt":1},{"data":12000002,"lvl":2,"cnt":2},{"data":12000005,"lvl":1,"cnt":2},{"data":12000005,"lvl":3,"cnt":2},{"data":12000006,"lvl":1,"cnt":2},{"data":12000008,"lvl":1,"cnt":2}],"decos":[{"data":18000184,"cnt":1}],"obstacles":[{"data":8000000,"cnt":5},{"data":8000004,"cnt":3},{"data":8000006,"cnt":3},{"data":8000007,"cnt":1},{"data":8000008,"cnt":3},{"data":8000010,"lvl":6},{"data":8000013,"cnt":2},{"data":8000131,"cnt":2}],"units":[{"data":4000000,"lvl":4},{"data":4000001,"lvl":4},{"data":4000002,"lvl":4},{"data":4000003,"lvl":4},{"data":4000004,"lvl":4},{"data":4000005,"lvl":4,"timer":17157},{"data":4000006,"lvl":5},{"data":4000007,"lvl":2},{"data":4000008,"lvl":3},{"data":4000009,"lvl":2,"timer":4931},{"data":4000010,"lvl":2},{"data":4000011,"lvl":4},{"data":4000012,"lvl":2},{"data":4000013,"lvl":2}],"siege_machines":[],"heroes":[{"data":28000000,"lvl":11},{"data":28000001,"lvl":6}],"spells":[{"data":26000000,"lvl":4},{"data":26000001,"lvl":4},{"data":26000002,"lvl":5},{"data":26000009,"lvl":2},{"data":26000010,"lvl":2}],"pets":[],"equipment":[{"data":90000000,"lvl":1},{"data":90000001,"lvl":1},{"data":90000002,"lvl":1},{"data":90000003,"lvl":1},{"data":90000004,"lvl":1},{"data":90000005,"lvl":1},{"data":90000006,"lvl":1},{"data":90000007,"lvl":1},{"data":90000008,"lvl":5},{"data":90000010,"lvl":1},{"data":90000013,"lvl":1},{"data":90000014,"lvl":5},{"data":90000015,"lvl":1},{"data":90000019,"lvl":1},{"data":90000022,"lvl":1},{"data":90000032,"lvl":1},{"data":90000035,"lvl":1},{"data":90000039,"lvl":1},{"data":90000040,"lvl":1},{"data":90000041,"lvl":1},{"data":90000042,"lvl":1},{"data":90000043,"lvl":1},{"data":90000048,"lvl":1}],"house_parts":[82000000,82000008,82000009,82000011,82000048,82000058,82000059],"skins":[],"sceneries":[],"buildings2":[{"data":1000039,"lvl":2,"timer":198},{"data":1000033,"lvl":3,"cnt":75},{"data":1000034,"lvl":4,"cnt":1},{"data":1000035,"lvl":4,"cnt":1},{"data":1000036,"lvl":3,"cnt":1},{"data":1000037,"lvl":4,"cnt":1},{"data":1000038,"lvl":4,"cnt":1},{"data":1000040,"lvl":6,"cnt":1},{"data":1000041,"lvl":4,"cnt":1},{"data":1000042,"lvl":1,"cnt":4},{"data":1000043,"lvl":2,"cnt":1},{"data":1000044,"lvl":3,"cnt":2},{"data":1000046,"lvl":4,"cnt":1},{"data":1000048,"lvl":3,"cnt":2},{"data":1000050,"lvl":1,"cnt":1},{"data":1000051,"lvl":2,"cnt":1},{"data":1000054,"lvl":2,"cnt":1},{"data":1000055,"lvl":2,"cnt":1},{"data":1000058,"lvl":2,"cnt":1}],"traps2":[{"data":12000010,"lvl":1,"cnt":2},{"data":12000011,"lvl":1,"cnt":2},{"data":12000011,"lvl":2,"cnt":1},{"data":12000013,"lvl":1,"cnt":3},{"data":12000014,"lvl":1,"cnt":1}],"decos2":[],"obstacles2":[{"data":8000041,"cnt":8},{"data":8000042,"cnt":1},{"data":8000047,"cnt":1},{"data":8000049,"cnt":3},{"data":8000050,"cnt":2},{"data":8000051,"cnt":1},{"data":8000053,"cnt":1},{"data":8000055,"cnt":1},{"data":8000056,"cnt":2},{"data":8000057,"cnt":5},{"data":8000058,"cnt":7},{"data":8000059,"cnt":4},{"data":8000060,"cnt":3},{"data":8000061,"cnt":1},{"data":8000062,"cnt":2},{"data":8000063,"cnt":13},{"data":8000064,"cnt":12}],"units2":[{"data":4000031,"lvl":6},{"data":4000032,"lvl":6},{"data":4000033,"lvl":8},{"data":4000034,"lvl":7},{"data":4000035,"lvl":5},{"data":4000041,"lvl":6,"timer":55487}],"heroes2":[],"skins2":[],"sceneries2":[]}`}
                                 onValid={setJsonData}
                                 onValidityChange={setJsonValid}
                             />
-                        </div>
 
-                        <div className="input-div-inner">
-                            <div
-                                className="active-time-container"
-                                style={{
-                                    padding: 10,
-                                    minWidth: 270,
-                                    maxWidth: 270,
-                                    height: 220,
-                                }}
-                            >
+                            <div className="flex flex-col gap-3">
                                 <ActiveTimeInput onChange={setActiveTime} />
-                            </div>
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    height: '100%',
-                                    gap: 20,
-                                }}
-                            >
-                                <div
-                                    className="builder-bonus-container"
-                                    style={{ width: 270, height: 60 }}
-                                >
-                                    <span className="builder-bonus-label">
-                                        Builder Bonus:
-                                    </span>
-                                    <select
-                                        value={selectedPct}
-                                        onChange={(e) =>
-                                            setSelectedPct(
-                                                Number(e.target.value),
-                                            )
-                                        }
-                                        className="builder-bonus-container"
-                                    >
-                                        <option value={0}>0%</option>
-                                        <option value={0.05}>5%</option>
-                                        <option value={0.1}>10%</option>
-                                        <option value={0.15}>15%</option>
-                                        <option value={0.2}>20%</option>
-                                        <option value={0.25}>25%</option>
-                                        <option value={0.3}>30%</option>
-                                        <option value={0.35}>35%</option>
-                                        <option value={0.4}>40%</option>
-                                        <option value={0.45}>45%</option>
-                                        <option value={0.5}>50%</option>
-                                    </select>
-                                </div>
-                                <div
-                                    className="builder-bonus-container"
-                                    style={{
-                                        width: 270,
-                                        maxWidth: 270,
-                                        height: 60,
-                                    }}
-                                >
-                                    <span className="builder-bonus-label">
-                                        Select Village:
-                                    </span>
-                                    <select
-                                        value={village}
-                                        onChange={(e) =>
-                                            setVillage(e.target.value)
-                                        }
-                                        className="builder-bonus-container"
-                                    >
-                                        <option value={'home'}>
-                                            Home Village
-                                        </option>
-                                        <option value={'builder'}>
-                                            Builder Base
-                                        </option>
-                                    </select>
-                                </div>
-                                <div
-                                    className="builder-bonus-container"
-                                    style={{
-                                        width: 270,
-                                        maxWidth: 270,
-                                        height: 60,
-                                    }}
-                                >
-                                    <span className="builder-bonus-label">
-                                        Use Fixed Priority
-                                    </span>
-                                    <input
-                                        type="checkbox"
-                                        checked={priority}
-                                        onChange={(e) =>
-                                            setPriority(e.target.checked)
-                                        }
-                                        style={{ transform: 'scale(1.2)' }}
-                                    />
+
+                                <div className="glass-card rounded-2xl p-4 space-y-3 bg-dark-750">
+                                    <div>
+                                        <label className="text-2xs uppercase tracking-widest text-amber-400 font-bold block mb-2">
+                                            Builder Bonus
+                                        </label>
+                                        <select
+                                            value={selectedPct}
+                                            onChange={(e) =>
+                                                setSelectedPct(
+                                                    Number(e.target.value),
+                                                )
+                                            }
+                                            className="input-modern w-full font-bold text-sm py-2 cursor-pointer"
+                                        >
+                                            <option value={0}>0%</option>
+                                            <option value={0.05}>5%</option>
+                                            <option value={0.1}>10%</option>
+                                            <option value={0.15}>15%</option>
+                                            <option value={0.2}>20%</option>
+                                            <option value={0.25}>25%</option>
+                                            <option value={0.3}>30%</option>
+                                            <option value={0.35}>35%</option>
+                                            <option value={0.4}>40%</option>
+                                            <option value={0.45}>45%</option>
+                                            <option value={0.5}>50%</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-2xs uppercase tracking-widest text-amber-400 font-bold block mb-2">
+                                            Select Village
+                                        </label>
+                                        <select
+                                            value={village}
+                                            onChange={(e) =>
+                                                setVillage(e.target.value)
+                                            }
+                                            className="input-modern w-full font-bold text-sm py-2 cursor-pointer"
+                                        >
+                                            <option value={'home'}>
+                                                Home Village
+                                            </option>
+                                            <option value={'builder'}>
+                                                Builder Base
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-1.5">
+                                        <label className="text-2xs uppercase tracking-widest text-amber-400 font-bold">
+                                            Fixed Priority
+                                        </label>
+                                        <input
+                                            type="checkbox"
+                                            checked={priority}
+                                            onChange={(e) =>
+                                                setPriority(e.target.checked)
+                                            }
+                                            className="w-5 h-5 rounded-lg bg-dark-800 border-2 border-dark-700 text-amber-400 focus:ring-2 focus:ring-amber-400 focus:ring-offset-0 cursor-pointer transition-all"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="controls">
-                        <button
-                            disabled={!jsonValid}
-                            className="button"
-                            style={{
-                                fontSize: 16,
-                                padding: '12px 22px',
-                                borderRadius: 12,
-                            }}
-                            onClick={() => runSchedule(jsonData, 'SPT')}
-                        >
-                            Generate SPT
-                        </button>
-                        <button
-                            disabled={!jsonValid}
-                            className="button"
-                            style={{
-                                fontSize: 16,
-                                padding: '12px 22px',
-                                borderRadius: 12,
-                            }}
-                            onClick={() => runSchedule(jsonData, 'LPT')}
-                        >
-                            Generate LPT
-                        </button>
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-dark-600">
+                            <button
+                                disabled={!jsonValid}
+                                onClick={() => runSchedule(jsonData, 'SPT')}
+                                className="btn-primary px-8 py-2.5 text-sm font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            >
+                                Generate SPT
+                            </button>
+                            <button
+                                disabled={!jsonValid}
+                                onClick={() => runSchedule(jsonData, 'LPT')}
+                                className="btn-primary px-8 py-2.5 text-sm font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            >
+                                Generate LPT
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                {err[0] && (
-                    <div
-                        className="metrics"
-                        style={{ marginTop: 10, marginBottom: 10 }}
-                    >
-                        <div
-                            className="pill"
-                            style={{
-                                fontSize: 15,
-                                background: '#da7474ff',
-                                color: '#e72121ff',
-                            }}
-                        >
-                            {err[0]
-                                ? err[1]
-                                : 'There was an error parsing your JSON!'}
-                        </div>
-                    </div>
-                )}
-
-                {tasks.length > 0 && (
-                    <div>
-                        <div className="field">
-                            <h2
-                                style={{
-                                    paddingLeft: 8,
-                                    marginTop: 10,
-                                    marginBottom: 10,
-                                    color: '#3730a3',
-                                }}
-                            >
-                                Smart Tracker
-                            </h2>
-                            <div className="timeline-header">
-                                <div
-                                    className="metrics"
-                                    style={{ marginTop: 10, marginBottom: 10 }}
-                                >
-                                    <div
-                                        className="pill"
-                                        style={{ background: '#eef2ff' }}
-                                    >
-                                        Completed: {trackerStats.completed}/
-                                        {trackerStats.total} (
-                                        {trackerStats.completionPct}%)
+                {/* Results Sections */}
+                <div className="max-w-7xl mx-auto px-6 mt-8">
+                    {tasks.length > 0 && (
+                        <div>
+                            <div className="glass-card rounded-2xl p-8 mb-8">
+                                <h2 className="text-xl font-bold text-dark-200 mb-6">
+                                    Progress
+                                </h2>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                        <div className="glass-card rounded-2xl p-4 bg-dark-750">
+                                            <div className="text-2xs uppercase tracking-widest text-amber-400/60 font-bold mb-1.5">
+                                                Completed
+                                            </div>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-2xl font-black text-dark-100">
+                                                    {trackerStats.completed}
+                                                </span>
+                                                <span className="text-base text-dark-400 font-bold">
+                                                    / {trackerStats.total}
+                                                </span>
+                                                <span className="text-amber-400 font-bold text-base ml-auto">
+                                                    {trackerStats.completionPct}
+                                                    %
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="glass-card rounded-2xl p-4 bg-dark-750 border border-dark-600">
+                                            <div className="text-2xs uppercase tracking-widest text-amber-400/60 font-bold mb-1.5">
+                                                Remaining
+                                            </div>
+                                            <div className="text-2xl font-black text-dark-100">
+                                                {trackerStats.remaining}
+                                            </div>
+                                            <div className="text-xs text-dark-400 mt-0.5 uppercase tracking-wider">
+                                                Tasks
+                                            </div>
+                                        </div>
+                                        <div className="glass-card rounded-2xl p-4 bg-dark-750 border border-dark-600">
+                                            <div className="text-2xs uppercase tracking-widest text-amber-400/60 font-bold mb-1.5">
+                                                Time Left
+                                            </div>
+                                            <div className="text-2xl font-black text-dark-100">
+                                                {formatDuration(
+                                                    trackerStats.remainingDuration,
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div
-                                    className="metrics"
-                                    style={{ marginTop: 10, marginBottom: 10 }}
-                                >
-                                    <div
-                                        className="pill"
-                                        style={{ background: '#eef2ff' }}
-                                    >
-                                        Remaining: {trackerStats.remaining}{' '}
-                                        tasks
+
+                                    <div className="flex gap-2 flex-wrap">
+                                        <div className="px-3 py-2 bg-dark-750 backdrop-blur-sm border border-dark-600 rounded-lg\">
+                                            <span className="text-amber-400 font-bold text-xs uppercase tracking-wider\">
+                                                Defense
+                                            </span>
+                                            <span className="text-dark-100 font-black text-sm ml-2\">
+                                                {trackerStats.byCategory
+                                                    .Defense || 0}
+                                            </span>
+                                        </div>
+                                        <div className="px-3 py-2 bg-dark-750 backdrop-blur-sm border border-dark-600 rounded-lg">
+                                            <span className="text-amber-400 font-bold text-xs uppercase tracking-wider">
+                                                Resource
+                                            </span>
+                                            <span className="text-dark-100 font-black text-sm ml-2">
+                                                {trackerStats.byCategory
+                                                    .Resource || 0}
+                                            </span>
+                                        </div>
+                                        <div className="px-3 py-2 bg-dark-750 backdrop-blur-sm border border-dark-600 rounded-lg">
+                                            <span className="text-amber-400 font-bold text-xs uppercase tracking-wider">
+                                                Offense
+                                            </span>
+                                            <span className="text-dark-100 font-black text-sm ml-2">
+                                                {trackerStats.byCategory
+                                                    .Offense || 0}
+                                            </span>
+                                        </div>
+                                        <div className="px-3 py-2 bg-dark-750 backdrop-blur-sm border border-dark-600 rounded-lg">
+                                            <span className="text-amber-400 font-bold text-xs uppercase tracking-wider">
+                                                Hero
+                                            </span>
+                                            <span className="text-dark-100 font-black text-sm ml-2">
+                                                {trackerStats.byCategory.Hero ||
+                                                    0}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div
-                                    className="metrics"
-                                    style={{ marginTop: 10, marginBottom: 10 }}
-                                >
-                                    <div
-                                        className="pill"
-                                        style={{ background: '#eef2ff' }}
-                                    >
-                                        Remaining Time:{' '}
-                                        {formatDuration(
-                                            trackerStats.remainingDuration,
+
+                                    <div className="glass-card rounded-2xl overflow-hidden bg-dark-850/30 max-h-[32vh] overflow-y-auto border border-dark-600">
+                                        {recommendedTasks.map((task, idx) => (
+                                            <div
+                                                key={`rec-${taskKey(task)}`}
+                                                className={`group border-b border-dark-600 last:border-b-0 hover:bg-amber-400/10 transition-all ${
+                                                    idx % 2 === 0
+                                                        ? 'bg-dark-800/50'
+                                                        : 'bg-dark-850/80'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between gap-4 p-3">
+                                                    <div className="flex-1">
+                                                        <div className="font-black text-base text-dark-100 mb-1.5 group-hover:text-amber-400 transition-colors">
+                                                            {String(
+                                                                task.id,
+                                                            ).replaceAll(
+                                                                '_',
+                                                                ' ',
+                                                            )}
+                                                            <span className="ml-2 px-2.5 py-0.5 bg-amber-400/20 text-amber-400 rounded-lg text-xs font-bold">
+                                                                L{task.level}
+                                                            </span>
+                                                            <span className="ml-2 text-dark-400 text-sm font-medium">
+                                                                #{task.iter}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-2xs">
+                                                            <span className="px-2 py-0.5 bg-dark-750 text-amber-400/80 rounded-lg border border-dark-600 font-bold uppercase tracking-wider">
+                                                                {getTaskCategory(
+                                                                    task.id,
+                                                                )}
+                                                            </span>
+                                                            <span className="text-dark-400 font-medium">
+                                                                Builder{' '}
+                                                                {Number(
+                                                                    task.worker,
+                                                                ) + 1}
+                                                            </span>
+                                                            <span className="text-amber-400 font-bold">
+                                                                {formatDuration(
+                                                                    task.duration,
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() =>
+                                                            toggleDone(task)
+                                                        }
+                                                        className="btn-primary px-4 py-2 text-xs font-bold rounded-lg whitespace-nowrap"
+                                                    >
+                                                        Mark Done
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {recommendedTasks.length === 0 && (
+                                            <div className="p-12 text-center">
+                                                <div className="text-5xl mb-4">
+                                                    ✓
+                                                </div>
+                                                <p className="text-dark-400 text-sm font-bold uppercase tracking-wider">
+                                                    All upgrades complete
+                                                </p>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div
-                                style={{
-                                    display: 'flex',
-                                    flexWrap: 'wrap',
-                                    gap: 10,
-                                    marginTop: 2,
-                                    marginBottom: 12,
-                                }}
-                            >
-                                <div
-                                    className="pill"
-                                    style={{ background: '#f8fafc' }}
-                                >
-                                    Defense:{' '}
-                                    {trackerStats.byCategory.Defense || 0}
-                                </div>
-                                <div
-                                    className="pill"
-                                    style={{ background: '#f8fafc' }}
-                                >
-                                    Resource:{' '}
-                                    {trackerStats.byCategory.Resource || 0}
-                                </div>
-                                <div
-                                    className="pill"
-                                    style={{ background: '#f8fafc' }}
-                                >
-                                    Offense:{' '}
-                                    {trackerStats.byCategory.Offense || 0}
-                                </div>
-                                <div
-                                    className="pill"
-                                    style={{ background: '#f8fafc' }}
-                                >
-                                    Hero: {trackerStats.byCategory.Hero || 0}
-                                </div>
-                            </div>
+                            <div className="glass-card rounded-2xl p-5 mb-6">
+                                <h2 className="text-lg font-bold text-dark-100 mb-4">
+                                    Timeline Chart
+                                </h2>
 
-                            <div
-                                style={{
-                                    maxHeight: '28vh',
-                                    overflowY: 'auto',
-                                    border: '1px solid var(--border)',
-                                    borderRadius: 10,
-                                    marginBottom: 8,
-                                }}
-                            >
-                                {recommendedTasks.map((task) => (
-                                    <div
-                                        key={`rec-${taskKey(task)}`}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            gap: 10,
-                                            padding: '8px 10px',
-                                            borderBottom: '1px solid #e2e8f0',
-                                        }}
-                                    >
-                                        <div>
-                                            <div
-                                                style={{
-                                                    fontWeight: 600,
-                                                    fontSize: 14,
-                                                }}
-                                            >
-                                                {String(task.id).replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}{' '}
-                                                · L{task.level} · #{task.iter}
-                                            </div>
-                                            <div
-                                                style={{
-                                                    fontSize: 12,
-                                                    color: '#475569',
-                                                }}
-                                            >
-                                                {getTaskCategory(task.id)} ·
-                                                Builder{' '}
-                                                {Number(task.worker) + 1} ·{' '}
-                                                {formatDuration(task.duration)}
-                                            </div>
-                                        </div>
-                                        <button
-                                            className="button secondary"
-                                            onClick={() => toggleDone(task)}
-                                            style={{
-                                                padding: '6px 10px',
-                                                borderRadius: 8,
-                                            }}
-                                        >
-                                            Mark Done
-                                        </button>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="glass-card rounded-2xl px-4 py-2 bg-dark-750 border border-dark-600">
+                                        <span className="text-2xs uppercase tracking-widest text-amber-400/50 font-bold mr-2">
+                                            Makespan
+                                        </span>
+                                        <span className="font-black text-dark-100 text-base">
+                                            {makespan}
+                                        </span>
                                     </div>
-                                ))}
-                                {recommendedTasks.length === 0 && (
-                                    <div
-                                        style={{
-                                            padding: 12,
-                                            color: '#475569',
-                                            fontSize: 14,
-                                        }}
-                                    >
-                                        All scheduled upgrades are marked
-                                        complete for this mode.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="field">
-                            <h2
-                                style={{
-                                    paddingLeft: 8,
-                                    marginTop: 10,
-                                    marginBottom: 10,
-                                    color: '#3730a3',
-                                }}
-                            >
-                                Timeline Chart
-                            </h2>
-
-                            <div className="timeline-header">
-                                <div
-                                    className="metrics"
-                                    style={{ marginTop: 10, marginBottom: 10 }}
-                                >
-                                    <div
-                                        className="pill"
-                                        style={{ background: '#eef2ff' }}
-                                    >
-                                        Makespan: {makespan}
-                                    </div>
-                                </div>
-                                <span style={{ marginLeft: 'auto' }}>
-                                    <div
-                                        className="metrics"
-                                        style={{
-                                            marginTop: 10,
-                                            marginBottom: 10,
-                                        }}
-                                    >
-                                        <div
-                                            className="pill"
-                                            style={{ background: '#eef2ff' }}
-                                        >
+                                    <div className="px-4 py-2 bg-gradient-to-r from-amber-400/15 to-amber-400/15 border border-amber-400/20 rounded-lg">
+                                        <span className="font-black text-amber-400 text-sm uppercase tracking-wider">
                                             {scheduleType}
-                                        </div>
+                                        </span>
                                     </div>
-                                </span>
-                            </div>
-                            <span>
-                                Tip: Pinch or Ctrl + Mouse Wheel to zoom in and
-                                out
-                            </span>
-                            <div
-                                className="chart-shell"
-                                style={{
-                                    background: '#fff',
-                                    borderRadius: 16,
-                                    boxShadow: '0 2px 12px #e0e7ff',
-                                }}
-                            >
-                                <BuilderTimeline
-                                    tasks={tasks}
-                                    start={startTime}
-                                    height={dynamicHeight}
-                                    doneKeys={doneKeys}
-                                    onToggle={toggleDone}
-                                    taskKeyFn={taskKey}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="field">
-                            <h2
-                                style={{
-                                    paddingLeft: 8,
-                                    marginTop: 10,
-                                    marginBottom: 10,
-                                    color: '#3730a3',
-                                }}
-                            >
-                                Timeline Cards
-                            </h2>
-                            <div>
-                                <div className="timeline-header">
-                                    <div
-                                        className="metrics"
-                                        style={{
-                                            marginTop: 10,
-                                            marginBottom: 10,
-                                        }}
-                                    >
-                                        <div
-                                            className="pill"
-                                            style={{ background: '#eef2ff' }}
-                                        >
-                                            Makespan: {makespan}
-                                        </div>
-                                    </div>
-                                    <span style={{ marginLeft: 'auto' }}>
-                                        <div
-                                            className="metrics"
-                                            style={{
-                                                marginTop: 10,
-                                                marginBottom: 10,
-                                            }}
-                                        >
-                                            <div
-                                                className="pill"
-                                                style={{
-                                                    background: '#eef2ff',
-                                                }}
-                                            >
-                                                {scheduleType}
-                                            </div>
-                                        </div>
-                                    </span>
                                 </div>
-                                <div
-                                    style={{
-                                        maxHeight: '50vh', // adjust how tall you want it
-                                        overflowY: 'auto',
-                                        paddingRight: 6, // avoid scrollbar overlap
-                                        border: '1px solid var(--border)',
-                                        borderRadius: 10,
-                                        marginBottom: 20,
-                                    }}
-                                >
-                                    <TimelineCards
+                                <p className="text-2xs text-dark-400 mb-2.5 uppercase tracking-wider font-medium\">
+                                    Tip: Pinch or Ctrl + Mouse Wheel to zoom
+                                </p>
+                                <div className="bg-white rounded-2xl shadow-card-lg overflow-hidden">
+                                    <BuilderTimeline
                                         tasks={tasks}
-                                        colorForId={colorForId}
+                                        start={startTime}
+                                        height={dynamicHeight}
                                         doneKeys={doneKeys}
                                         onToggle={toggleDone}
                                         taskKeyFn={taskKey}
                                     />
                                 </div>
                             </div>
+
+                            <div className="glass-card rounded-2xl p-5 mb-6 border border-dark-600">
+                                <h2 className="text-lg font-bold text-dark-100 mb-4">
+                                    Timeline Cards
+                                </h2>
+                                <div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="glass-card rounded-2xl px-4 py-2 bg-dark-750 border border-dark-600">
+                                            <span className="text-2xs uppercase tracking-widest text-amber-400/50 font-bold mr-2">
+                                                Makespan
+                                            </span>
+                                            <span className="font-black text-dark-100 text-base">
+                                                {makespan}
+                                            </span>
+                                        </div>
+                                        <div className="px-4 py-2 bg-gradient-to-r from-amber-400/15 to-amber-400/15 border border-amber-400/20 rounded-lg">
+                                            <span className="font-black text-amber-400 text-sm uppercase tracking-wider\">
+                                                {scheduleType}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="max-h-[42vh] overflow-y-auto pr-2\">
+                                        <TimelineCards
+                                            tasks={tasks}
+                                            colorForId={colorForId}
+                                            doneKeys={doneKeys}
+                                            onToggle={toggleDone}
+                                            taskKeyFn={taskKey}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );
