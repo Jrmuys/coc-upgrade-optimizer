@@ -18,6 +18,16 @@ This project adapts the original Clash of Clans optimizer into a smart village t
 - **Interactive timeline and cards**: Mark tasks complete from either view with synchronized status.
 - **Persistent local progress**: Done-state is saved per player tag, village, and schedule mode.
 
+## Persistence Contract 🗂️
+
+- **Schema versioning**: Local data is stored with a versioned key prefix (`cocTracker:v1:*`) and integrity envelope.
+- **Settings key**: `cocTracker:v1:settings` stores builder boost, village, fixed priority, and preferred strategy.
+- **Done-state scope**: `cocTracker:v1:done:{village}:{tag}:{strategy}` prevents cross-account contamination.
+- **Active-time scope**: `cocTracker:v1:activeTime:{village}` keeps home/builder windows separate.
+- **JSON draft**: `cocTracker:v1:jsonDraft` stores last valid pasted export with the existing timestamp-expiry behavior.
+- **Migration**: Legacy keys are migrated once to the versioned schema (`cocTracker:v1:migration:done`).
+- **Corruption fallback**: Invalid or corrupted payloads are automatically discarded and replaced with safe defaults.
+
 ## Credits & Contributions 🤝
 
 This tracker is based on [SamBro2901/coc-upgrade-optimizer](https://github.com/SamBro2901/coc-upgrade-optimizer). Contributions and issues are welcome.

@@ -12,33 +12,41 @@ import {
     createWarningAlert,
     SEVERITY,
 } from './errorPresentation.js';
+import {
+    cleanupStaleDoneState,
+    loadPersisted,
+    migratePersistenceIfNeeded,
+    persistenceKeys,
+    removePersisted,
+    savePersisted,
+} from './persistence';
+
+migratePersistenceIfNeeded();
 
 export function JsonInput({
     label = 'JSON Input',
     initial = '',
     onValid,
     onValidityChange,
-    storageKey = 'JSON',
+    storageKey = persistenceKeys.jsonDraft,
 }) {
     const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
     const [text, setText] = React.useState(() => {
         try {
-            const stored = localStorage.getItem(storageKey);
-            if (stored) {
-                const parsed = JSON.parse(stored);
-
-                if (parsed.timestamp) {
-                    const ts = parsed.timestamp;
+            const stored = loadPersisted(storageKey, null);
+            if (stored && typeof stored === 'object') {
+                if (stored.timestamp) {
+                    const ts = stored.timestamp;
                     const ms = ts < 1e12 ? ts * 1000 : ts;
                     const age = Date.now() - ms;
                     if (age > SIX_HOURS_MS) {
-                        localStorage.removeItem(storageKey);
+                        removePersisted(storageKey);
                     } else {
-                        return stored;
+                        return JSON.stringify(stored);
                     }
                 } else {
-                    return stored;
+                    return JSON.stringify(stored);
                 }
             }
 
@@ -69,7 +77,7 @@ export function JsonInput({
             try {
                 const obj = JSON.parse(text);
                 onValid?.(obj);
-                localStorage.setItem(storageKey, JSON.stringify(obj));
+                savePersisted(storageKey, obj);
             } catch {
                 /* no-op */
             }
@@ -89,7 +97,7 @@ export function JsonInput({
     const handleClear = () => {
         setText('');
         setError('');
-        localStorage.removeItem(storageKey);
+        removePersisted(storageKey);
     };
 
     return (
@@ -244,42 +252,49 @@ export default function App() {
         end: null,
     });
 
+    const persistedSettings = React.useMemo(
+        () =>
+            loadPersisted(persistenceKeys.settings, {
+                builderBonusPct: 0,
+                baseVillage: 'home',
+                fixedPriority: false,
+                preferredStrategy: 'LPT',
+            }),
+        [],
+    );
+
     const [selectedPct, setSelectedPct] = useState(() => {
-        const saved = localStorage.getItem('builderBonusPct');
-        return saved ? Number(saved) : 0;
+        return Number(persistedSettings.builderBonusPct || 0);
     });
 
     const [village, setVillage] = useState(() => {
-        const saved = localStorage.getItem('baseVillage');
-        return saved ? String(saved) : 'home';
+        return persistedSettings.baseVillage === 'builder' ? 'builder' : 'home';
     });
 
     const [priority, setPriority] = useState(() => {
-        const saved = localStorage.getItem('fixedPriority');
-        return saved ? saved === 'true' : false;
+        return Boolean(persistedSettings.fixedPriority);
     });
 
     const [preferredStrategy, setPreferredStrategy] = useState(() => {
-        const saved = localStorage.getItem('preferredStrategy');
-        return saved === 'SPT' ? 'SPT' : 'LPT';
+        return persistedSettings.preferredStrategy === 'SPT' ? 'SPT' : 'LPT';
     });
     const [lastRunSignature, setLastRunSignature] = useState(null);
     const [scheduleStale, setScheduleStale] = useState(false);
     const [activeTimeResetToken, setActiveTimeResetToken] = useState(0);
+    const [lastClearedDoneKeys, setLastClearedDoneKeys] = useState(null);
 
     const [validationAlert, setValidationAlert] = useState(null);
     const [preflightSummary, setPreflightSummary] = useState(null);
     const [mappingWarnings, setMappingWarnings] = useState(null);
 
     React.useEffect(() => {
-        localStorage.setItem('builderBonusPct', selectedPct);
-        localStorage.setItem('baseVillage', village);
-        localStorage.setItem('fixedPriority', priority ? 'true' : 'false');
-    }, [selectedPct, village, priority]);
-
-    React.useEffect(() => {
-        localStorage.setItem('preferredStrategy', preferredStrategy);
-    }, [preferredStrategy]);
+        savePersisted(persistenceKeys.settings, {
+            builderBonusPct: selectedPct,
+            baseVillage: village,
+            fixedPriority: priority,
+            preferredStrategy,
+        });
+    }, [selectedPct, village, priority, preferredStrategy]);
 
     const scheduleMode = React.useMemo(
         () => (scheduleType.includes('SPT') ? 'SPT' : 'LPT'),
@@ -287,21 +302,26 @@ export default function App() {
     );
     const doneStorageKey = React.useMemo(() => {
         const playerTag = jsonData?.tag || 'unknown';
-        return `doneKeys:${village}:${playerTag}:${scheduleMode}`;
+        return persistenceKeys.done({
+            village,
+            playerTag,
+            strategy: scheduleMode,
+        });
     }, [jsonData?.tag, village, scheduleMode]);
 
     React.useEffect(() => {
-        try {
-            const raw = localStorage.getItem(doneStorageKey);
-            const parsed = raw ? JSON.parse(raw) : [];
-            setDoneKeys(new Set(Array.isArray(parsed) ? parsed : []));
-        } catch {
-            setDoneKeys(new Set());
-        }
+        const parsed = loadPersisted(doneStorageKey, []);
+        setDoneKeys(new Set(Array.isArray(parsed) ? parsed : []));
+
+        cleanupStaleDoneState({
+            village,
+            playerTag: jsonData?.tag || 'unknown',
+            strategy: scheduleMode,
+        });
     }, [doneStorageKey]);
 
     React.useEffect(() => {
-        localStorage.setItem(doneStorageKey, JSON.stringify([...doneKeys]));
+        savePersisted(doneStorageKey, [...doneKeys]);
     }, [doneKeys, doneStorageKey]);
 
     const boostPercent = Math.round((Number(selectedPct) || 0) * 100);
@@ -363,6 +383,11 @@ export default function App() {
     };
 
     const resetSettings = () => {
+        const confirmed = window.confirm(
+            'Reset schedule settings and active-time preferences? Progress will be kept.',
+        );
+        if (!confirmed) return;
+
         setPreferredStrategy('LPT');
         setSelectedPct(0);
         setVillage('home');
@@ -374,14 +399,26 @@ export default function App() {
         setLastRunSignature(null);
         setScheduleStale(false);
         setActiveTimeResetToken((token) => token + 1);
-        try {
-            localStorage.removeItem('preferredStrategy');
-            localStorage.removeItem('builderBonusPct');
-            localStorage.removeItem('baseVillage');
-            localStorage.removeItem('fixedPriority');
-            localStorage.removeItem('activeTime:home');
-            localStorage.removeItem('activeTime:builder');
-        } catch {}
+        removePersisted(persistenceKeys.settings);
+        removePersisted(persistenceKeys.activeTime('home'));
+        removePersisted(persistenceKeys.activeTime('builder'));
+    };
+
+    const resetProgress = () => {
+        const confirmed = window.confirm(
+            'Reset progress for the current player, village, and strategy?',
+        );
+        if (!confirmed) return;
+
+        const snapshot = [...doneKeys];
+        setLastClearedDoneKeys(snapshot);
+        setDoneKeys(new Set());
+    };
+
+    const undoResetProgress = () => {
+        if (!Array.isArray(lastClearedDoneKeys)) return;
+        setDoneKeys(new Set(lastClearedDoneKeys));
+        setLastClearedDoneKeys(null);
     };
 
     const runSchedule = (
@@ -724,6 +761,7 @@ export default function App() {
                             </h2>
                             <JsonInput
                                 label="Paste village JSON data"
+                                storageKey={persistenceKeys.jsonDraft}
                                 initial={`{"tag":"#GU2QV0Y8Q","timestamp":${Math.floor(Date.now() / 1000)},"buildings":[{"data":1000008,"lvl":10,"gear_up":1},{"data":1000011,"lvl":5,"timer":24973}]}`}
                                 onValid={setJsonData}
                                 onValidityChange={setJsonValid}
@@ -843,7 +881,7 @@ export default function App() {
                             <ActiveTimeInput
                                 key={`${village}-${activeTimeResetToken}`}
                                 onChange={setActiveTime}
-                                storageKey={`activeTime:${village}`}
+                                storageKey={persistenceKeys.activeTime(village)}
                             />
 
                             <div className="flex flex-wrap gap-2 pt-2">
@@ -874,6 +912,22 @@ export default function App() {
                                 >
                                     Reset Settings
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={resetProgress}
+                                    className="px-4 py-2 text-xs font-bold rounded-lg border border-dark-600 text-dark-300 hover:text-dark-100 hover:border-amber-400 transition-colors"
+                                >
+                                    Reset Progress
+                                </button>
+                                {Array.isArray(lastClearedDoneKeys) && (
+                                    <button
+                                        type="button"
+                                        onClick={undoResetProgress}
+                                        className="px-4 py-2 text-xs font-bold rounded-lg border border-amber-500/50 text-amber-300 hover:text-amber-100 hover:border-amber-400 transition-colors"
+                                    >
+                                        Undo Reset Progress
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

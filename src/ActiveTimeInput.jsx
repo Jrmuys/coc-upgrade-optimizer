@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { loadPersisted, savePersisted } from './persistence';
 
 export default function ActiveTimeInput({
     onChange,
@@ -8,12 +9,14 @@ export default function ActiveTimeInput({
 }) {
     // Load saved values from localStorage (or fallback to defaults)
     const loadFromStorage = () => {
-        try {
-            const saved = JSON.parse(localStorage.getItem(storageKey));
-            if (saved && saved.start && saved.end) {
-                return saved;
-            }
-        } catch {}
+        const saved = loadPersisted(storageKey, null);
+        if (saved && typeof saved === 'object') {
+            return {
+                enabled: Boolean(saved.enabled),
+                start: saved.start || defaultStart,
+                end: saved.end || defaultEnd,
+            };
+        }
         return {
             enabled: false,
             start: defaultStart,
@@ -100,9 +103,7 @@ export default function ActiveTimeInput({
                     : null,
         };
 
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(payload));
-        } catch {}
+        savePersisted(storageKey, payload);
 
         onChange?.(payload);
     }, [
