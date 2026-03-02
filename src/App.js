@@ -540,16 +540,19 @@ export default function App() {
         let numBuilders = sanitizedData.num_builders || 1;
 
         console.log('🔵 Starting schedule generation...');
-        console.log('🔵 Input buildings:', sanitizedData.buildings?.slice(0, 3));
+        console.log('🔵 Input buildings (raw jD):', jD.buildings?.slice(0, 3));
 
         try {
-            // Prepare village data for CP-SAT solver
+            // Prepare village data for CP-SAT solver using raw JSON (not sanitizedData)
+            // because sanitizedData has been transformed and lost the original building structure
+            const rawBuildings = (jD.buildings || []).map((b, idx) => ({
+                id: b.data || `b${idx}`,
+                name: b.name || `Building ${idx}`,
+                duration_s: b.timer || 0, // Use timer field from raw JSON
+            }));
+
             const villageDataForSolver = {
-                buildings: (sanitizedData.buildings || []).map((b) => ({
-                    id: b.id,
-                    name: b.name,
-                    duration_s: Math.floor(b.duration / 1000), // Convert ms to seconds
-                })),
+                buildings: rawBuildings,
                 num_builders: numBuilders,
             };
 

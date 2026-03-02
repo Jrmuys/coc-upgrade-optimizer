@@ -55,10 +55,12 @@ function solveScheduleGreedy(villageData) {
 
     console.log('🟢 Greedy solver: received', buildings.length, 'buildings');
     if (buildings.length > 0) {
-        console.log(
-            '🟢 First 3 buildings:',
-            buildings.slice(0, 3),
-        );
+        const first = buildings[0];
+        console.log('🟢 First building structure:', {
+            keys: Object.keys(first),
+            values: first,
+        });
+        console.log('🟢 First 3 buildings:', buildings.slice(0, 3));
     }
 
     if (!buildings.length) {
