@@ -102,7 +102,7 @@ function solveScheduleGreedy(villageData) {
         const startTime = builderQueues[minIdx].endTime;
         const endTime = startTime + duration;
 
-        scheduleItems.push({
+        const item = {
             id: building.id || `b${idx}`,
             name: building.name || `Building ${idx}`,
             level: building.level || building.lvl || 0, // Include level from building data
@@ -111,7 +111,20 @@ function solveScheduleGreedy(villageData) {
             end: endTime,
             worker: minIdx, // Track which builder this task is assigned to
             iter: 0, // Iteration counter for task tracking
-        });
+        };
+
+        // Debug: log first 3 items to see if level is being set
+        if (idx < 3) {
+            console.log(`🟢 Schedule item ${idx}:`, {
+                id: item.id,
+                name: item.name,
+                level: item.level,
+                buildingLevel: building.level,
+                buildingLvl: building.lvl,
+            });
+        }
+
+        scheduleItems.push(item);
 
         builderQueues[minIdx].endTime = endTime;
         builderQueues[minIdx].tasks.push(building.id);
@@ -122,7 +135,12 @@ function solveScheduleGreedy(villageData) {
     // Sort by start time for output
     scheduleItems.sort((a, b) => a.start - b.start);
 
-    console.log('🟢 Greedy result:', scheduleItems.length, 'tasks, makespan:', makespan);
+    console.log(
+        '🟢 Greedy result:',
+        scheduleItems.length,
+        'tasks, makespan:',
+        makespan,
+    );
 
     return {
         success: true,

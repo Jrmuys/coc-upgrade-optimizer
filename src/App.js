@@ -553,6 +553,9 @@ export default function App() {
                 duration_s: b.timer || 0, // Use timer field from raw JSON
             }));
 
+            console.log('🔵 First building from jD:', jD.buildings?.[0]);
+            console.log('🔵 First mapped building:', rawBuildings[0]);
+
             const villageDataForSolver = {
                 buildings: rawBuildings,
                 num_builders: numBuilders,
