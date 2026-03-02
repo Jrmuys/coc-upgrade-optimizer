@@ -28,7 +28,18 @@ export async function invokeIPC(channel, ...args) {
         return window.electronAPI.invoke(channel, ...args);
     }
 
-    // Fallback: localStorage-based stub for web mode
+    // Fallback: In web mode, CP-SAT not available
+    if (channel === 'solve-schedule') {
+        console.warn(
+            '[IPC Fallback] solve-schedule - web mode, will use greedy scheduler',
+        );
+        return {
+            success: false,
+            error: 'CP-SAT not available in web mode',
+        };
+    }
+
+    // For other channels, provide localStorage fallback
     console.warn(`[IPC Fallback] ${channel} - web mode (localStorage)`);
     return {
         success: true,
@@ -145,7 +156,10 @@ export function useSolveSchedule() {
                 setError(null);
                 return result; // Return full result, not just schedule
             } else {
-                const errorMsg = result?.error || result?.status || 'Failed to solve schedule';
+                const errorMsg =
+                    result?.error ||
+                    result?.status ||
+                    'Failed to solve schedule';
                 setError(errorMsg);
                 setSchedule(null);
                 return { success: false, error: errorMsg }; // Return proper error object

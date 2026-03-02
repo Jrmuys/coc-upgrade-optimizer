@@ -539,6 +539,8 @@ export default function App() {
         const runStartPerf = performance.now();
         let numBuilders = sanitizedData.num_builders || 1;
 
+        console.log('🔵 Starting schedule generation...');
+
         try {
             // Prepare village data for CP-SAT solver
             const villageDataForSolver = {
@@ -549,6 +551,8 @@ export default function App() {
                 })),
                 num_builders: numBuilders,
             };
+
+            console.log('🔵 Calling CP-SAT solver...', villageDataForSolver);
 
             // Solver configuration
             const solverConfig = {
@@ -563,13 +567,16 @@ export default function App() {
                 solverConfig,
             );
 
+            console.log('🔵 CP-SAT result:', result);
+
             const runDurationMs = performance.now() - runStartPerf;
 
             if (!result || !result.success) {
-                console.error('CP-SAT solver failed:', result?.status);
+                console.warn(
+                    '⚠️  CP-SAT not available (using greedy fallback):',
+                    result?.error || result?.status,
+                );
                 setErr(true);
-                // Fallback to greedy if CP-SAT fails
-                console.warn('Falling back to greedy scheduler');
                 let activeWindowStart =
                     activeTime.enabled && activeTime.start
                         ? activeTime.start
@@ -622,6 +629,9 @@ export default function App() {
                 sch.schedule.forEach((t) => {
                     colorForId(t.id);
                 });
+                console.log(
+                    `✅ Greedy schedule generated: ${sch.schedule.length} tasks, ${Math.round(performance.now() - runStartPerf)}ms`,
+                );
                 return;
             }
 
@@ -665,6 +675,8 @@ export default function App() {
             scheduleItems.forEach((t) => {
                 colorForId(t.id);
             });
+            
+            console.log(`✅ Schedule generated: ${scheduleItems.length} tasks, ${Math.round(runDurationMs)}ms`);
         } catch (error) {
             console.error('Error calling CP-SAT solver:', error);
             setErr(true);
@@ -944,7 +956,6 @@ export default function App() {
                         </div>
 
                         <div className="flex flex-col gap-3">
-
                             <div className="glass-card rounded-2xl p-4 space-y-3 bg-dark-750 border border-dark-700">
                                 <div>
                                     <label className="text-2xs uppercase tracking-widest text-amber-400 font-bold block mb-2">
