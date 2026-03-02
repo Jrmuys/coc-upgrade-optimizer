@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Date | 2026-03-02 (Updated) |
-| Status | In Progress (Phases 0-8b Complete, Phases 9-17 Planned) |
+| Status | In Progress (Phases 0-8b Complete with CP-SAT Integration, Phases 9-17 Planned) |
 | Owner | jrmuy |
-| Scope | Web-based tracker (0-7) + Desktop CP-SAT optimizer (8-8b) + Multi-village engine (9-17) |
+| Scope | Web-based tracker (0-7) + Desktop CP-SAT optimizer (8-8b integrated) + Multi-village engine (9-17) |
 
 ## Table of Contents
 
@@ -210,13 +210,16 @@
 - IPC channels: get-village, save-village, solve-schedule, list-villages
 - Zero breaking changes, full localStorage fallback for web mode
 
-**Phase 8b** (✅ Complete - March 2026):
+**Phase 8b** (✅ Complete + Integrated - March 2026):
 - Google OR-Tools CP-SAT constraint programming solver fully implemented
-- Hard constraints: builders capacity, time bounds, building duration
+- Hard constraints: builders capacity, time bounds, building duration  
 - Objective: Minimize makespan (total completion time)
 - 14-18% improvement over greedy heuristic on complex instances
 - <100ms solve time for typical village configurations (5-20 buildings)
-- 19/19 tests passing, zero regressions, production-ready
+- **INTEGRATED**: runSchedule() now calls CP-SAT solver via IPC as PRIMARY scheduler
+- Graceful fallback to greedy scheduler if CP-SAT unavailable (IPC error, Python missing, etc.)
+- Schedule type shows "CP-SAT Optimal/Feasible" or fallback status
+- 19/19 tests passing (7 CP-SAT + 12 existing), zero regressions, production-ready
 
 **Phases 9-17** (📋 Planned):
 - Phase 9: Multi-village persistent model (3+ villages)
