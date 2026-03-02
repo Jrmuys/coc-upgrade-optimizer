@@ -540,6 +540,7 @@ export default function App() {
         let numBuilders = sanitizedData.num_builders || 1;
 
         console.log('🔵 Starting schedule generation...');
+        console.log('🔵 Input buildings:', sanitizedData.buildings?.slice(0, 3));
 
         try {
             // Prepare village data for CP-SAT solver
@@ -552,7 +553,7 @@ export default function App() {
                 num_builders: numBuilders,
             };
 
-            console.log('🔵 Calling CP-SAT solver...', villageDataForSolver);
+            console.log('🔵 Calling CP-SAT solver...', villageDataForSolver.buildings?.slice(0, 3), `(${villageDataForSolver.buildings?.length} total)`);
 
             // Solver configuration
             const solverConfig = {

@@ -53,6 +53,14 @@ function solveScheduleGreedy(villageData) {
     const buildings = villageData.buildings || [];
     const numBuilders = villageData.num_builders || 1;
 
+    console.log('🟢 Greedy solver: received', buildings.length, 'buildings');
+    if (buildings.length > 0) {
+        console.log(
+            '🟢 First 3 buildings:',
+            buildings.slice(0, 3),
+        );
+    }
+
     if (!buildings.length) {
         return {
             success: true,
@@ -108,6 +116,8 @@ function solveScheduleGreedy(villageData) {
 
     // Sort by start time for output
     scheduleItems.sort((a, b) => a.start - b.start);
+
+    console.log('🟢 Greedy result:', scheduleItems.length, 'tasks, makespan:', makespan);
 
     return {
         success: true,
