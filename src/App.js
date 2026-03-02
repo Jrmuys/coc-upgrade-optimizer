@@ -3,6 +3,7 @@ import { generateSchedule, getProfileOptions } from './scheduler.js';
 import { useSolveSchedule } from './utils/ipc.js';
 import { BUILDING_COLORS } from './colorMap';
 import { TimelineCards } from './TimelineCards.jsx';
+import mapping from './data/mapping.json' with { type: 'json' };
 import BuilderTimeline from './BuilderTimeline.jsx';
 import ActiveTimeInput from './ActiveTimeInput.jsx';
 import { validatePlayerJSON, generatePreflight } from './inputValidator.js';
@@ -547,7 +548,7 @@ export default function App() {
             // because sanitizedData has been transformed and lost the original building structure
             const rawBuildings = (jD.buildings || []).map((b, idx) => ({
                 id: b.data || `b${idx}`,
-                name: b.name || `Building ${idx}`,
+                name: mapping[b.data] || `Building ${idx}`, // Look up building name from mapping
                 duration_s: b.timer || 0, // Use timer field from raw JSON
             }));
 
