@@ -44,7 +44,7 @@ def solve_schedule(village_data, config):
         # Extract inputs
         buildings = village_data.get("buildings", [])
         num_builders = max(1, village_data.get("num_builders", 1))
-        
+
         timeout_s = config.get("timeout_s", 10)
         num_threads = config.get("num_threads", 4)
         log_progress = config.get("log_search_progress", False)
@@ -68,7 +68,7 @@ def solve_schedule(village_data, config):
 
         # Horizon: max possible time (sum of all durations = upper bound)
         horizon = sum(int(b.get("duration_s", 0)) for b in buildings)
-        
+
         # Decision variables: start time for each building
         # x[i] = start time of building i (in seconds)
         all_tasks = {}
@@ -76,7 +76,7 @@ def solve_schedule(village_data, config):
             duration = int(building.get("duration_s", 0))
             if duration <= 0:
                 duration = 1  # Minimum 1 second
-            
+
             task_name = building.get("id", f"building_{i}")
             task_var = model.NewIntVar(0, horizon, f"start_{task_name}")
             all_tasks[i] = {
@@ -101,12 +101,13 @@ def solve_schedule(village_data, config):
 
         # Constraint 2: Cumulative constraint - max N builders at any time
         cumul_var = model.NewIntVar(0, num_builders, "num_concurrent")
-        model.AddCumulative(all_intervals, [1] * len(all_intervals), num_builders)
+        model.AddCumulative(
+            all_intervals, [1] * len(all_intervals), num_builders)
 
         # Objective: Minimize makespan (completion time of last building)
         # makespan = max(start + duration for all buildings)
         makespan_var = model.NewIntVar(0, horizon, "makespan")
-        
+
         # Add constraint: makespan >= start + duration for each building
         for i, task in all_tasks.items():
             model.Add(
@@ -148,11 +149,12 @@ def solve_schedule(village_data, config):
             schedule_items.sort(key=lambda x: x["start"])
 
             solve_time_ms = (time.time() - start_time) * 1000
-            
+
             # Get iteration count from statistics
             iterations = 0
             if hasattr(solver, 'statistics') and solver.statistics:
-                iterations = getattr(solver.statistics, 'num_branches', 0) + getattr(solver.statistics, 'num_conflicts', 0)
+                iterations = getattr(solver.statistics, 'num_branches', 0) + \
+                    getattr(solver.statistics, 'num_conflicts', 0)
 
             return {
                 "success": True,

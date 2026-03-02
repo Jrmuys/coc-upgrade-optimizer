@@ -10,7 +10,7 @@ const ipcMock = {
 
 // Mock the isElectron check
 jest.mock('../utils/ipc', () => ({
-    isElectron: () => false,  // Run in web/mock mode for testing
+    isElectron: () => false, // Run in web/mock mode for testing
     invokeIPC: jest.fn(),
 }));
 
@@ -98,7 +98,9 @@ describe('Phase 8b Task 1-4: CP-SAT Solver Integration', () => {
         expect(result.schedule.length).toBe(2);
         expect(result.numBuilders).toBe(1);
         // Verify no overlap
-        expect(result.schedule[0].end).toBeLessThanOrEqual(result.schedule[1].start);
+        expect(result.schedule[0].end).toBeLessThanOrEqual(
+            result.schedule[1].start,
+        );
         expect(result.makespan).toBe(7200);
     });
 
@@ -195,10 +197,10 @@ describe('Phase 8b Task 1-4: CP-SAT Solver Integration', () => {
             numBuilders: 10,
             startTime: 0,
             makespan: 0,
-            solveTimeMs: 9500,  // Just under 10 second timeout
+            solveTimeMs: 9500, // Just under 10 second timeout
             iterations: 100000,
             err: false,
-            status: 'FEASIBLE',  // Best found solution within timeout
+            status: 'FEASIBLE', // Best found solution within timeout
         };
 
         expect(result.solveTimeMs).toBeLessThan(10000);

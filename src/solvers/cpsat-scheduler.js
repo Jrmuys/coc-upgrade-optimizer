@@ -66,7 +66,7 @@ function solveScheduleGreedy(villageData) {
 
     // Sort by duration (LPT - Longest Processing Time)
     const sorted = [...buildings].sort(
-        (a, b) => (b.duration_s || 0) - (a.duration_s || 0)
+        (a, b) => (b.duration_s || 0) - (a.duration_s || 0),
     );
 
     // Greedy packing into builders
