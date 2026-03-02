@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
+import { solveScheduleGreedy } from '../solvers/cpsat-scheduler.js';
 
 /**
  * Check if running in Electron environment
@@ -152,22 +153,43 @@ export function useSolveSchedule() {
                 config,
             );
             if (result && result.success) {
+                // Check if we got an empty response (CP-SAT returned 0 tasks)
+                // This can happen if Python solver isn't responding properly
+                if (
+                    !result.schedule ||
+                    result.schedule.length === 0
+                ) {
+                    console.warn(
+                        '⚠️  CP-SAT returned empty schedule, using greedy fallback',
+                    );
+                    const greedyResult = solveScheduleGreedy(villageData);
+                    setSchedule(greedyResult.schedule || []);
+                    setError(null);
+                    return greedyResult;
+                }
+
                 setSchedule(result.schedule || []);
                 setError(null);
                 return result; // Return full result, not just schedule
             } else {
-                const errorMsg =
-                    result?.error ||
-                    result?.status ||
-                    'Failed to solve schedule';
-                setError(errorMsg);
-                setSchedule(null);
-                return { success: false, error: errorMsg }; // Return proper error object
+                // CP-SAT failed (IPC error, Python missing, etc.)
+                // Use greedy fallback
+                console.warn(
+                    '⚠️  CP-SAT unavailable:',
+                    result?.error || result?.status || 'Unknown error',
+                );
+                const greedyResult = solveScheduleGreedy(villageData);
+                setSchedule(greedyResult.schedule || []);
+                setError('CP-SAT unavailable, using greedy fallback');
+                return greedyResult;
             }
         } catch (err) {
-            setError(err?.message || String(err));
-            setSchedule(null);
-            return { success: false, error: err?.message || String(err) }; // Return proper error object
+            // IPC error, use greedy fallback
+            console.error('❌ IPC error:', err?.message || String(err));
+            const greedyResult = solveScheduleGreedy(villageData);
+            setSchedule(greedyResult.schedule || []);
+            setError('Error calling CP-SAT, using greedy fallback');
+            return greedyResult;
         } finally {
             setSolving(false);
         }
