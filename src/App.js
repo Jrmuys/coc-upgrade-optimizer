@@ -450,7 +450,7 @@ export default function App() {
         setLastClearedDoneKeys(null);
     };
 
-    const runSchedule = (
+    const runSchedule = async (
         dataOverride = jsonData,
         strategy = preferredStrategy,
     ) => {
@@ -535,51 +535,182 @@ export default function App() {
             setValidationAlert(null);
         }
 
-        let activeWindowStart =
-            activeTime.enabled && activeTime.start ? activeTime.start : '00:00';
-        let activeWindowEnd =
-            activeTime.enabled && activeTime.end ? activeTime.end : '23:59';
+        // Use CP-SAT solver via IPC (primary scheduler)
         const runStartPerf = performance.now();
-        const {
-            sch,
-            numBuilders,
-            startTime: runStart,
-            err,
-        } = generateSchedule(
-            sanitizedData,
-            false,
-            strategy,
-            priority,
-            village,
-            selectedPct,
-            activeWindowStart,
-            activeWindowEnd,
-        );
-        const runDurationMs = performance.now() - runStartPerf;
-        setErr(err);
-        setTasks(sch.schedule);
-        setMakespan(sch.makespan);
-        setStartTime(runStart);
-        setPerfStats({
-            generationMs: Math.round(runDurationMs),
-            iterations:
-                Number.isFinite(sch.iterations) && sch.iterations >= 0
-                    ? sch.iterations
-                    : null,
-            taskCount: sch.schedule.length,
-        });
-        setScheduleType(STRATEGY_COPY[strategy]?.label || strategy);
-        const rowHeight = 40;
-        const basePadding = 90;
-        setHeight(numBuilders * rowHeight + basePadding);
+        let numBuilders = sanitizedData.num_builders || 1;
 
-        const runSignature = buildSettingsSignature(strategy, sanitizedData);
-        setLastRunSignature(runSignature);
-        setScheduleStale(false);
+        try {
+            // Prepare village data for CP-SAT solver
+            const villageDataForSolver = {
+                buildings: (sanitizedData.buildings || []).map((b) => ({
+                    id: b.id,
+                    name: b.name,
+                    duration_s: Math.floor(b.duration / 1000), // Convert ms to seconds
+                })),
+                num_builders: numBuilders,
+            };
 
-        sch.schedule.forEach((t) => {
-            colorForId(t.id);
-        });
+            // Solver configuration
+            const solverConfig = {
+                timeout_s: 10,
+                num_threads: 4,
+                log_search_progress: false,
+            };
+
+            // Call CP-SAT solver via IPC (Electron main process -> Python subprocess)
+            const result = await solveSchedule.solve(
+                villageDataForSolver,
+                solverConfig
+            );
+
+            const runDurationMs = performance.now() - runStartPerf;
+
+            if (!result || !result.success) {
+                console.error('CP-SAT solver failed:', result?.status);
+                setErr(true);
+                // Fallback to greedy if CP-SAT fails
+                console.warn('Falling back to greedy scheduler');
+                let activeWindowStart =
+                    activeTime.enabled && activeTime.start
+                        ? activeTime.start
+                        : '00:00';
+                let activeWindowEnd =
+                    activeTime.enabled && activeTime.end
+                        ? activeTime.end
+                        : '23:59';
+                const {
+                    sch,
+                    numBuilders: nB,
+                    startTime: runStart,
+                    err: greedyErr,
+                } = generateSchedule(
+                    sanitizedData,
+                    false,
+                    strategy,
+                    priority,
+                    village,
+                    selectedPct,
+                    activeWindowStart,
+                    activeWindowEnd,
+                );
+                setErr(greedyErr);
+                setTasks(sch.schedule);
+                setMakespan(sch.makespan);
+                setStartTime(runStart);
+                setPerfStats({
+                    generationMs: Math.round(performance.now() - runStartPerf),
+                    iterations:
+                        Number.isFinite(sch.iterations) && sch.iterations >= 0
+                            ? sch.iterations
+                            : null,
+                    taskCount: sch.schedule.length,
+                });
+                setScheduleType(
+                    `${STRATEGY_COPY[strategy]?.label || strategy} (CP-SAT unavailable)`
+                );
+                const rowHeight = 40;
+                const basePadding = 90;
+                setHeight(nB * rowHeight + basePadding);
+
+                const runSignature = buildSettingsSignature(strategy, sanitizedData);
+                setLastRunSignature(runSignature);
+                setScheduleStale(false);
+
+                sch.schedule.forEach((t) => {
+                    colorForId(t.id);
+                });
+                return;
+            }
+
+            // CP-SAT succeeded - use its results
+            const scheduleItems = (result.schedule || []).map((item) => ({
+                id: item.id,
+                name: item.name,
+                start: item.start * 1000, // Convert to ms for consistency with UI
+                duration: item.duration * 1000,
+                end: item.end * 1000,
+            }));
+
+            setErr(result.err || false);
+            setTasks(scheduleItems);
+            setMakespan(result.makespan);
+            setStartTime(0); // CP-SAT uses relative time starting at 0
+            setPerfStats({
+                generationMs: Math.round(runDurationMs),
+                iterations: result.iterations || 0,
+                taskCount: scheduleItems.length,
+            });
+
+            const statusLabel =
+                result.status === 'OPTIMAL'
+                    ? 'Optimal'
+                    : result.status === 'FEASIBLE'
+                      ? 'Feasible'
+                      : 'Solved';
+            setScheduleType(`CP-SAT ${statusLabel}`);
+            const rowHeight = 40;
+            const basePadding = 90;
+            setHeight(result.numBuilders * rowHeight + basePadding);
+
+            const runSignature = buildSettingsSignature(strategy, sanitizedData);
+            setLastRunSignature(runSignature);
+            setScheduleStale(false);
+
+            scheduleItems.forEach((t) => {
+                colorForId(t.id);
+            });
+        } catch (error) {
+            console.error('Error calling CP-SAT solver:', error);
+            setErr(true);
+            // Fallback to greedy scheduler
+            console.warn('Falling back to greedy scheduler due to IPC error');
+            let activeWindowStart =
+                activeTime.enabled && activeTime.start ? activeTime.start : '00:00';
+            let activeWindowEnd =
+                activeTime.enabled && activeTime.end ? activeTime.end : '23:59';
+            const {
+                sch,
+                numBuilders: nB,
+                startTime: runStart,
+                err: greedyErr,
+            } = generateSchedule(
+                sanitizedData,
+                false,
+                strategy,
+                priority,
+                village,
+                selectedPct,
+                activeWindowStart,
+                activeWindowEnd,
+            );
+            const runDurationMs = performance.now() - runStartPerf;
+            setErr(greedyErr);
+            setTasks(sch.schedule);
+            setMakespan(sch.makespan);
+            setStartTime(runStart);
+            setPerfStats({
+                generationMs: Math.round(runDurationMs),
+                iterations:
+                    Number.isFinite(sch.iterations) && sch.iterations >= 0
+                        ? sch.iterations
+                        : null,
+                taskCount: sch.schedule.length,
+            });
+            setScheduleType(
+                `${STRATEGY_COPY[strategy]?.label || strategy} (CP-SAT error: using greedy)`
+            );
+            const rowHeight = 40;
+            const basePadding = 90;
+            setHeight(nB * rowHeight + basePadding);
+
+            const runSignature = buildSettingsSignature(strategy, sanitizedData);
+            setLastRunSignature(runSignature);
+            setScheduleStale(false);
+
+            sch.schedule.forEach((t) => {
+                colorForId(t.id);
+            });
+        }
     };
 
     const remainingTasks = React.useMemo(
@@ -916,7 +1047,13 @@ export default function App() {
                                 <button
                                     disabled={!jsonValid || !jsonData}
                                     onClick={() =>
-                                        runSchedule(jsonData, preferredStrategy)
+                                        runSchedule(jsonData, preferredStrategy).catch(
+                                            (e) =>
+                                                console.error(
+                                                    'Error running schedule:',
+                                                    e,
+                                                ),
+                                        )
                                     }
                                     className="btn-primary px-6 py-2.5 text-sm font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
