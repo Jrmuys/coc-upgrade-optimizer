@@ -14,8 +14,17 @@ test('renders phase controls for strategy and reset actions', () => {
     render(<App />);
 
     expect(screen.getByText(/schedule generator/i)).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /lpt/i }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('button', { name: /spt/i }).length).toBeGreaterThan(0);
+
+    // Check for strategy dropdown (Phase 8 multi-objective optimization)
+    const strategySelect = screen.getByRole('combobox', {
+        name: /optimization strategy/i,
+    });
+    expect(strategySelect).toBeInTheDocument();
+
+    // Verify options include legacy LPT/SPT and new profiles
+    expect(screen.getByText(/longest processing time/i)).toBeInTheDocument();
+    expect(screen.getByText(/shortest processing time/i)).toBeInTheDocument();
+
     expect(
         screen.getByRole('button', { name: /reset settings/i }),
     ).toBeInTheDocument();

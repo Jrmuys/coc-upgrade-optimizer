@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { generateSchedule } from './scheduler.js';
+import { generateSchedule, getProfileOptions } from './scheduler.js';
 import { BUILDING_COLORS } from './colorMap';
 import { TimelineCards } from './TimelineCards.jsx';
 import BuilderTimeline from './BuilderTimeline.jsx';
@@ -198,18 +198,36 @@ const getTaskCategory = (id = '') => {
     return 'Defense';
 };
 
-const STRATEGY_COPY = {
-    LPT: {
-        label: 'Longest Processing Time',
-        short: 'LPT',
-        description: 'Keeps builders busy with the longest upgrades first.',
-    },
-    SPT: {
-        label: 'Shortest Processing Time',
-        short: 'SPT',
-        description: 'Clears quick wins to reveal long blockers sooner.',
-    },
+// Build strategy options from legacy + Phase 8 objective profiles
+const buildStrategyOptions = () => {
+    const legacy = {
+        LPT: {
+            label: 'Longest Processing Time (Legacy)',
+            short: 'LPT',
+            description: 'Keeps builders busy with the longest upgrades first.',
+        },
+        SPT: {
+            label: 'Shortest Processing Time (Legacy)',
+            short: 'SPT',
+            description: 'Clears quick wins to reveal long blockers sooner.',
+        },
+    };
+
+    // Add Phase 8 objective profiles
+    const profiles = getProfileOptions();
+    const objectiveOptions = {};
+    profiles.forEach((profile) => {
+        objectiveOptions[profile.key] = {
+            label: profile.name,
+            short: profile.key,
+            description: profile.description,
+        };
+    });
+
+    return { ...legacy, ...objectiveOptions };
 };
+
+const STRATEGY_COPY = buildStrategyOptions();
 
 const BOOST_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 
@@ -332,7 +350,6 @@ export default function App() {
     }, [doneKeys, doneStorageKey]);
 
     const boostPercent = Math.round((Number(selectedPct) || 0) * 100);
-    const otherStrategy = preferredStrategy === 'SPT' ? 'LPT' : 'SPT';
 
     const computeDataDigest = React.useCallback((data) => {
         if (!data || typeof data !== 'object') {
@@ -546,11 +563,7 @@ export default function App() {
                     : null,
             taskCount: sch.schedule.length,
         });
-        setScheduleType(
-            strategy === 'SPT'
-                ? 'Shortest Processing Time (SPT)'
-                : 'Longest Processing Time (LPT)',
-        );
+        setScheduleType(STRATEGY_COPY[strategy]?.label || strategy);
         const rowHeight = 40;
         const basePadding = 90;
         setHeight(numBuilders * rowHeight + basePadding);
@@ -785,43 +798,38 @@ export default function App() {
 
                         <div className="flex flex-col gap-3">
                             <div className="glass-card rounded-2xl p-4 bg-dark-750 border border-dark-700">
-                                <div className="flex items-start justify-between mb-3">
-                                    <div>
-                                        <p className="text-2xs uppercase tracking-widest text-dark-400 font-bold">
-                                            Strategy
-                                        </p>
-                                        <p className="text-2xs text-dark-500">
-                                            Choose how builders are prioritized.
-                                        </p>
-                                    </div>
-                                    <span className="text-amber-400 text-xs font-bold">
-                                        {STRATEGY_COPY[preferredStrategy].label}
-                                    </span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {Object.entries(STRATEGY_COPY).map(
-                                        ([key, meta]) => (
-                                            <button
-                                                key={key}
-                                                type="button"
-                                                onClick={() =>
-                                                    setPreferredStrategy(key)
-                                                }
-                                                className={`rounded-xl border px-3 py-2 text-left transition-all ${
-                                                    preferredStrategy === key
-                                                        ? 'border-amber-400 bg-amber-400/15 text-amber-100'
-                                                        : 'border-dark-600 bg-dark-800 text-dark-300 hover:border-amber-400/40'
-                                                }`}
-                                            >
-                                                <div className="text-xs font-bold uppercase tracking-widest">
-                                                    {meta.short}
-                                                </div>
-                                                <p className="text-2xs leading-snug">
-                                                    {meta.description}
-                                                </p>
-                                            </button>
-                                        ),
-                                    )}
+                                <div>
+                                    <label
+                                        htmlFor="strategy-select"
+                                        className="text-2xs uppercase tracking-widest text-amber-400 font-bold block mb-2"
+                                    >
+                                        Optimization Strategy
+                                    </label>
+                                    <p className="text-2xs text-dark-500 mb-3">
+                                        Choose how builders are prioritized.
+                                    </p>
+                                    <select
+                                        id="strategy-select"
+                                        value={preferredStrategy}
+                                        onChange={(e) =>
+                                            setPreferredStrategy(e.target.value)
+                                        }
+                                        className="input-modern w-full font-bold text-sm py-2 cursor-pointer"
+                                    >
+                                        {Object.entries(STRATEGY_COPY).map(
+                                            ([key, meta]) => (
+                                                <option key={key} value={key}>
+                                                    {meta.label}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                    <p className="text-2xs text-dark-400 mt-2 leading-snug">
+                                        {
+                                            STRATEGY_COPY[preferredStrategy]
+                                                .description
+                                        }
+                                    </p>
                                 </div>
                             </div>
 
@@ -907,18 +915,7 @@ export default function App() {
                                     }
                                     className="btn-primary px-6 py-2.5 text-sm font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
-                                    Generate{' '}
-                                    {STRATEGY_COPY[preferredStrategy].short}
-                                </button>
-                                <button
-                                    type="button"
-                                    disabled={!jsonValid || !jsonData}
-                                    onClick={() =>
-                                        runSchedule(jsonData, otherStrategy)
-                                    }
-                                    className="btn-secondary px-6 py-2.5 text-sm font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
-                                >
-                                    Compare {STRATEGY_COPY[otherStrategy].short}
+                                    Generate Schedule
                                 </button>
                                 <button
                                     type="button"

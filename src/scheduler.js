@@ -16,6 +16,181 @@ import playerData from './data/coc_data.json' with { type: 'json' };
 const DEBUG_SCHEDULER =
     process.env.REACT_APP_DEBUG_SCHEDULER === 'true' || false;
 
+/**
+ * Multi-Objective Optimization Profiles (Phase 8)
+ * Each profile defines weights for competing optimization objectives
+ */
+const OBJECTIVE_PROFILES = {
+    TimeMax: {
+        name: 'Time Maximization (LPT)',
+        description:
+            'Pure speed - prioritize longest tasks first for fastest completion',
+        weights: {
+            duration: 1.0, // High weight on duration (LPT behavior)
+            resource: 0.0, // Ignore resource smoothing
+            heroAvail: 0.0, // Ignore hero availability
+            categoryBalance: 0.0, // Ignore category balance
+        },
+    },
+    Balanced: {
+        name: 'Balanced',
+        description: 'Balance speed, resources, and hero availability',
+        weights: {
+            duration: 0.4, // Moderate weight on duration
+            resource: 0.3, // Consider resource smoothing
+            heroAvail: 0.2, // Consider hero availability
+            categoryBalance: 0.1, // Slight category balance
+        },
+    },
+    HeroAvailability: {
+        name: 'Hero Availability',
+        description:
+            'Keep heroes available for war by scheduling them strategically',
+        weights: {
+            duration: 0.2, // Low weight on duration
+            resource: 0.1, // Low resource consideration
+            heroAvail: 0.6, // High weight on hero availability
+            categoryBalance: 0.1, // Slight category balance
+        },
+    },
+    ResourceSmoothing: {
+        name: 'Resource Smoothing',
+        description: 'Minimize resource bottlenecks and idle builders',
+        weights: {
+            duration: 0.2, // Low weight on duration
+            resource: 0.6, // High weight on resource smoothing
+            heroAvail: 0.1, // Low hero consideration
+            categoryBalance: 0.1, // Slight category balance
+        },
+    },
+    RushMode: {
+        name: 'Rush Mode',
+        description: 'Focus on critical buildings for TH upgrade',
+        weights: {
+            duration: 0.3, // Moderate duration weight
+            resource: 0.1, // Low resource consideration
+            heroAvail: 0.0, // Ignore hero availability
+            categoryBalance: 0.0, // Ignore category balance
+            rushPriority: 0.6, // High weight on rush-critical buildings
+        },
+    },
+};
+
+/**
+ * Calculate objective score for a task based on current profile
+ * @param {Object} task - Task to score
+ * @param {Object} profile - Active objective profile
+ * @param {Object} context - Context for scoring (resources, heroes, etc.)
+ * @returns {Number} - Composite objective score
+ */
+function calculateObjectiveScore(task, profile, context = {}) {
+    const weights = profile.weights;
+    let score = 0;
+
+    // Duration component (normalized by max duration in ready queue)
+    if (weights.duration > 0) {
+        const maxDuration = context.maxDuration || 1;
+        const durationScore = task.duration / maxDuration;
+        score += weights.duration * durationScore;
+    }
+
+    // Resource smoothing component
+    if (weights.resource > 0) {
+        // Prefer tasks that use different resources than recently completed
+        // Higher score if resource type is underutilized
+        const resourceScore = calculateResourceScore(task, context);
+        score += weights.resource * resourceScore;
+    }
+
+    // Hero availability component
+    if (weights.heroAvail > 0) {
+        // Lower score for heroes if they're needed soon (war time)
+        const heroScore = calculateHeroAvailScore(task, context);
+        score += weights.heroAvail * heroScore;
+    }
+
+    // Category balance component
+    if (weights.categoryBalance > 0) {
+        // Prefer categories that haven't been scheduled recently
+        const categoryScore = calculateCategoryBalanceScore(task, context);
+        score += weights.categoryBalance * categoryScore;
+    }
+
+    // Rush mode priority component
+    if (weights.rushPriority > 0 && context.rushCriticalIds) {
+        // Very high score for rush-critical buildings
+        const rushScore = context.rushCriticalIds.has(task.id) ? 1.0 : 0.0;
+        score += weights.rushPriority * rushScore;
+    }
+
+    // Store score on task for debugging/display
+    task.objectiveScore = score;
+
+    return score;
+}
+
+/**
+ * Calculate resource smoothing score
+ * Prefer tasks that balance resource usage
+ */
+function calculateResourceScore(task, context) {
+    if (!context.recentResourceUsage) return 0.5; // Neutral if no context
+
+    const taskResource = task.resource || 'mixed';
+    const recentUsage = context.recentResourceUsage[taskResource] || 0;
+
+    // Higher score for less-used resources (inverse of usage)
+    const maxUsage = Math.max(...Object.values(context.recentResourceUsage), 1);
+    return 1 - recentUsage / maxUsage;
+}
+
+/**
+ * Calculate hero availability score
+ * Lower score for heroes during war windows
+ */
+function calculateHeroAvailScore(task, context) {
+    const heroIds = [
+        'Barbarian_King',
+        'Archer_Queen',
+        'Grand_Warden',
+        'Royal_Champion',
+    ];
+    const isHero = heroIds.includes(task.id);
+
+    if (!isHero) return 0.5; // Neutral for non-heroes
+
+    // If hero lock constraints configured, check if task would conflict
+    if (context.heroLockWindows && context.heroLockWindows.length > 0) {
+        const taskEnd = (context.currentTime || 0) + task.duration;
+        const wouldConflict = context.heroLockWindows.some((window) => {
+            return (
+                taskEnd > window.start &&
+                (context.currentTime || 0) < window.end
+            );
+        });
+
+        // Low score if would conflict with war window
+        return wouldConflict ? 0.0 : 1.0;
+    }
+
+    return 0.5; // Neutral if no constraints
+}
+
+/**
+ * Calculate category balance score
+ * Prefer categories not recently scheduled
+ */
+function calculateCategoryBalanceScore(task, context) {
+    if (!context.recentCategoryCount) return 0.5; // Neutral if no context
+
+    const category = task.category || 'other';
+    const recentCount = context.recentCategoryCount[category] || 0;
+
+    // Higher score for less-scheduled categories
+    const maxCount = Math.max(...Object.values(context.recentCategoryCount), 1);
+    return 1 - recentCount / maxCount;
+}
+
 function arrayToObject(arr) {
     return arr.reduce((acc, item) => {
         const key = Object.keys(item)[0];
@@ -336,24 +511,50 @@ function constructTasks(
     return { tasks, numWorkers, timestamp, warnings };
 }
 
-function sortTasks(arr, scheme) {
-    switch (scheme) {
-        case 'LPT':
-            arr = arr.sort(
-                (a, b) => a.priority - b.priority || b.duration - a.duration,
-            );
-            break;
-        case 'SPT':
-            arr = arr.sort(
-                (a, b) => a.priority - b.priority || a.duration - b.duration,
-            );
-            break;
-        default:
-            return {
-                sch: { schedule: [], makespan: 0 },
-                err: [true, `Unknown scheduling scheme provided: ${scheme}`],
-            };
+function sortTasks(arr, scheme, context = {}) {
+    // Handle legacy LPT/SPT schemes
+    if (scheme === 'LPT' || scheme === 'SPT') {
+        const legacy =
+            scheme === 'LPT'
+                ? arr.sort(
+                      (a, b) =>
+                          a.priority - b.priority || b.duration - a.duration,
+                  )
+                : arr.sort(
+                      (a, b) =>
+                          a.priority - b.priority || a.duration - b.duration,
+                  );
+        return legacy;
     }
+
+    // Handle objective-based profiles (Phase 8)
+    const profile = OBJECTIVE_PROFILES[scheme];
+    if (!profile) {
+        console.error(`Unknown scheduling scheme: ${scheme}`);
+        // Fall back to LPT
+        return arr.sort(
+            (a, b) => a.priority - b.priority || b.duration - a.duration,
+        );
+    }
+
+    // Calculate max duration for normalization
+    const maxDuration = Math.max(...arr.map((t) => t.duration), 1);
+    const scoringContext = {
+        ...context,
+        maxDuration,
+    };
+
+    // Calculate objective scores for all tasks
+    arr.forEach((task) =>
+        calculateObjectiveScore(task, profile, scoringContext),
+    );
+
+    // Sort by priority first (preserve priority 1 = ongoing), then by objective score (descending)
+    arr.sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        return (b.objectiveScore || 0) - (a.objectiveScore || 0);
+    });
+
     return arr;
 }
 
@@ -555,10 +756,19 @@ function myScheduler(
 
     let workers = Array.from({ length: numWorkers }, () => null); // null means idle
 
-    ready = sortTasks(ready, scheme);
-
     let currTime = timestamp;
     const startTime = currTime;
+
+    // Initialize objective scoring context (Phase 8)
+    const scoringContext = {
+        currentTime: currTime,
+        recentResourceUsage: { gold: 0, elixir: 0, darkElixir: 0, mixed: 0 },
+        recentCategoryCount: {},
+        heroLockWindows: [], // TODO: Load from user settings in future phase
+        rushCriticalIds: new Set(), // TODO: Populate from rush mode config
+    };
+
+    ready = sortTasks(ready, scheme, scoringContext);
 
     while (
         ready.length > 0 ||
@@ -661,6 +871,17 @@ function myScheduler(
             workers[ft.worker] = null;
             running = running.filter((t) => t.index !== ft.index);
 
+            // Update objective scoring context (Phase 8)
+            if (ft.resource) {
+                scoringContext.recentResourceUsage[ft.resource] =
+                    (scoringContext.recentResourceUsage[ft.resource] || 0) + 1;
+            }
+            if (ft.category) {
+                scoringContext.recentCategoryCount[ft.category] =
+                    (scoringContext.recentCategoryCount[ft.category] || 0) + 1;
+            }
+            scoringContext.currentTime = currTime;
+
             // Release successor tasks
             const succTask = successors.get(ft.index) || [];
             if (succTask.length > 0) {
@@ -677,7 +898,7 @@ function myScheduler(
                 }
             }
         }
-        ready = sortTasks(ready, scheme);
+        ready = sortTasks(ready, scheme, scoringContext);
         iterations++;
     }
 
@@ -1085,4 +1306,24 @@ export function generateSchedule(
         startTime: timestamp,
         err: errs,
     };
+}
+
+/**
+ * Get available objective optimization profiles (Phase 8)
+ * @returns {Object} - Map of profile keys to profile definitions
+ */
+export function getObjectiveProfiles() {
+    return OBJECTIVE_PROFILES;
+}
+
+/**
+ * Get profile names for UI display (Phase 8)
+ * @returns {Array} - Array of {key, name, description} objects
+ */
+export function getProfileOptions() {
+    return Object.keys(OBJECTIVE_PROFILES).map((key) => ({
+        key,
+        name: OBJECTIVE_PROFILES[key].name,
+        description: OBJECTIVE_PROFILES[key].description,
+    }));
 }

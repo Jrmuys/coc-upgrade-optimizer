@@ -76,8 +76,8 @@ export function validatePlayerJSON(dataJSON, baseMode = 'home') {
             return false;
         }
 
-        // Validate level is reasonable (TH can be 1-16, most buildings 1-14)
-        if (b.lvl < 1 || b.lvl > 16) {
+        // Validate level is reasonable (buildings can reach 16+ at high TH levels)
+        if (b.lvl < 1 || b.lvl > 65) {
             warnings.push(`Building index ${idx} has unusual level: ${b.lvl}`);
         }
 
@@ -134,7 +134,7 @@ export function validatePlayerJSON(dataJSON, baseMode = 'home') {
             return false;
         }
 
-        if (h.lvl < 1 || h.lvl > 16) {
+        if (h.lvl < 1 || h.lvl > 65) {
             warnings.push(`Hero index ${idx} has unusual level: ${h.lvl}`);
         }
 

@@ -153,13 +153,19 @@ export default function BuilderTimeline({
             );
             const content = `${label} (${durLabel})`;
 
+            // Phase 8: Include objective score in tooltip if available
+            let tooltipText = `${content}${isDone ? ' (done)' : ''}`;
+            if (t.objectiveScore !== undefined && t.objectiveScore !== null) {
+                tooltipText += `\nObjective Score: ${(t.objectiveScore || 0).toFixed(3)}`;
+            }
+
             return {
                 id: trackingKey,
                 group: Number(t.worker || 0),
                 start,
                 end,
                 content,
-                title: `${content}${isDone ? ' (done)' : ''}`,
+                title: tooltipText,
                 style: getItemStyle(t, isDone),
             };
         });

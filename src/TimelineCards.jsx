@@ -173,7 +173,7 @@ export function TimelineCards({
                             );
                         })()}
 
-                        <div className="flex items-center justify-between mb-3\">
+                        <div className="flex items-center justify-between mb-3">
                             <div className="text-xs text-dark-300">
                                 Duration:{' '}
                                 <span className="font-semibold text-dark-100">
@@ -184,6 +184,16 @@ export function TimelineCards({
                                 {Math.round(widthPct)}%
                             </div>
                         </div>
+
+                        {t.objectiveScore !== undefined &&
+                            t.objectiveScore !== null && (
+                                <div className="text-xs text-dark-400 mb-3 py-1.5 px-2 bg-dark-800/50 rounded-lg border border-dark-700">
+                                    Optimization Score:{' '}
+                                    <span className="font-semibold text-amber-300">
+                                        {(t.objectiveScore || 0).toFixed(3)}
+                                    </span>
+                                </div>
+                            )}
 
                         <div className="relative h-2 bg-dark-800 rounded-full overflow-hidden">
                             <div
