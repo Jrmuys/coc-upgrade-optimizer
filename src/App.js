@@ -653,9 +653,9 @@ export default function App() {
                 id: item.id,
                 name: item.name,
                 level: item.level, // Preserve level for timeline keys
-                start: item.start * 1000, // Convert to ms for consistency with UI
-                duration: item.duration * 1000,
-                end: item.end * 1000,
+                start: item.start, // Keep in seconds (UI expects seconds, not milliseconds)
+                duration: item.duration,
+                end: item.end,
                 worker: item.worker, // Preserve worker assignment
                 iter: item.iter || 0, // Preserve iteration counter
             }));

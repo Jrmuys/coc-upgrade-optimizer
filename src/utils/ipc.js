@@ -155,10 +155,7 @@ export function useSolveSchedule() {
             if (result && result.success) {
                 // Check if we got an empty response (CP-SAT returned 0 tasks)
                 // This can happen if Python solver isn't responding properly
-                if (
-                    !result.schedule ||
-                    result.schedule.length === 0
-                ) {
+                if (!result.schedule || result.schedule.length === 0) {
                     console.warn(
                         '⚠️  CP-SAT returned empty schedule, using greedy fallback',
                     );
