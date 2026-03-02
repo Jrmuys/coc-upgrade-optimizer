@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { generateSchedule, getProfileOptions } from './scheduler.js';
+import { useSolveSchedule } from './utils/ipc.js';
 import { BUILDING_COLORS } from './colorMap';
 import { TimelineCards } from './TimelineCards.jsx';
 import BuilderTimeline from './BuilderTimeline.jsx';
@@ -310,6 +311,10 @@ export default function App() {
         iterations: null,
         taskCount: 0,
     });
+
+    // Integration point for Electron subprocess solver (fallback to direct call in browser)
+    // eslint-disable-next-line no-unused-vars
+    const solveSchedule = useSolveSchedule();
 
     React.useEffect(() => {
         savePersisted(persistenceKeys.settings, {

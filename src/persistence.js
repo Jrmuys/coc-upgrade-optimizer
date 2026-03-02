@@ -8,6 +8,18 @@ const KEY_ACTIVE_TIME = (village) => `${PREFIX}:activeTime:${village}`;
 const KEY_DONE = ({ village, playerTag, strategy }) =>
     `${PREFIX}:done:${village}:${playerTag || 'unknown'}:${strategy}`;
 
+/**
+ * Check if running in Electron environment
+ * Note: Phase 8b will route IPC calls here for persistent village storage
+ */
+// eslint-disable-next-line no-unused-vars
+const isElectronEnv = () => {
+    return (
+        typeof window !== 'undefined' &&
+        typeof window.electronAPI !== 'undefined'
+    );
+};
+
 const logDebug = (...args) => {
     if (process.env.NODE_ENV !== 'production') {
         console.debug('[persistence]', ...args);
