@@ -54,6 +54,7 @@ function solveScheduleGreedy(villageData) {
     const numBuilders = villageData.num_builders || 1;
 
     console.log('🟢 Greedy solver: received', buildings.length, 'buildings');
+    console.log('🟢 Buildings with work:', buildings.filter((b) => (b.duration_s || 0) > 0).length);
     if (buildings.length > 0) {
         const first = buildings[0];
         console.log('🟢 First building structure:', {
@@ -74,8 +75,23 @@ function solveScheduleGreedy(villageData) {
         };
     }
 
+    // Filter out buildings with 0 duration (no upgrade needed)
+    const buildingsWithWork = buildings.filter((b) => (b.duration_s || 0) > 0);
+
+    if (buildingsWithWork.length === 0) {
+        console.log('🟢 All buildings have 0 duration - nothing to schedule');
+        return {
+            success: true,
+            schedule: [],
+            numBuilders: numBuilders,
+            makespan: 0,
+            err: false,
+            status: 'NO_WORK',
+        };
+    }
+
     // Sort by duration (LPT - Longest Processing Time)
-    const sorted = [...buildings].sort(
+    const sorted = [...buildingsWithWork].sort(
         (a, b) => (b.duration_s || 0) - (a.duration_s || 0),
     );
 
