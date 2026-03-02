@@ -560,7 +560,7 @@ export default function App() {
             // Call CP-SAT solver via IPC (Electron main process -> Python subprocess)
             const result = await solveSchedule.solve(
                 villageDataForSolver,
-                solverConfig
+                solverConfig,
             );
 
             const runDurationMs = performance.now() - runStartPerf;
@@ -606,13 +606,16 @@ export default function App() {
                     taskCount: sch.schedule.length,
                 });
                 setScheduleType(
-                    `${STRATEGY_COPY[strategy]?.label || strategy} (CP-SAT unavailable)`
+                    `${STRATEGY_COPY[strategy]?.label || strategy} (CP-SAT unavailable)`,
                 );
                 const rowHeight = 40;
                 const basePadding = 90;
                 setHeight(nB * rowHeight + basePadding);
 
-                const runSignature = buildSettingsSignature(strategy, sanitizedData);
+                const runSignature = buildSettingsSignature(
+                    strategy,
+                    sanitizedData,
+                );
                 setLastRunSignature(runSignature);
                 setScheduleStale(false);
 
@@ -652,7 +655,10 @@ export default function App() {
             const basePadding = 90;
             setHeight(result.numBuilders * rowHeight + basePadding);
 
-            const runSignature = buildSettingsSignature(strategy, sanitizedData);
+            const runSignature = buildSettingsSignature(
+                strategy,
+                sanitizedData,
+            );
             setLastRunSignature(runSignature);
             setScheduleStale(false);
 
@@ -665,7 +671,9 @@ export default function App() {
             // Fallback to greedy scheduler
             console.warn('Falling back to greedy scheduler due to IPC error');
             let activeWindowStart =
-                activeTime.enabled && activeTime.start ? activeTime.start : '00:00';
+                activeTime.enabled && activeTime.start
+                    ? activeTime.start
+                    : '00:00';
             let activeWindowEnd =
                 activeTime.enabled && activeTime.end ? activeTime.end : '23:59';
             const {
@@ -697,13 +705,16 @@ export default function App() {
                 taskCount: sch.schedule.length,
             });
             setScheduleType(
-                `${STRATEGY_COPY[strategy]?.label || strategy} (CP-SAT error: using greedy)`
+                `${STRATEGY_COPY[strategy]?.label || strategy} (CP-SAT error: using greedy)`,
             );
             const rowHeight = 40;
             const basePadding = 90;
             setHeight(nB * rowHeight + basePadding);
 
-            const runSignature = buildSettingsSignature(strategy, sanitizedData);
+            const runSignature = buildSettingsSignature(
+                strategy,
+                sanitizedData,
+            );
             setLastRunSignature(runSignature);
             setScheduleStale(false);
 
@@ -933,41 +944,6 @@ export default function App() {
                         </div>
 
                         <div className="flex flex-col gap-3">
-                            <div className="glass-card rounded-2xl p-4 bg-dark-750 border border-dark-700">
-                                <div>
-                                    <label
-                                        htmlFor="strategy-select"
-                                        className="text-2xs uppercase tracking-widest text-amber-400 font-bold block mb-2"
-                                    >
-                                        Optimization Strategy
-                                    </label>
-                                    <p className="text-2xs text-dark-500 mb-3">
-                                        Choose how builders are prioritized.
-                                    </p>
-                                    <select
-                                        id="strategy-select"
-                                        value={preferredStrategy}
-                                        onChange={(e) =>
-                                            setPreferredStrategy(e.target.value)
-                                        }
-                                        className="input-modern w-full font-bold text-sm py-2 cursor-pointer"
-                                    >
-                                        {Object.entries(STRATEGY_COPY).map(
-                                            ([key, meta]) => (
-                                                <option key={key} value={key}>
-                                                    {meta.label}
-                                                </option>
-                                            ),
-                                        )}
-                                    </select>
-                                    <p className="text-2xs text-dark-400 mt-2 leading-snug">
-                                        {
-                                            STRATEGY_COPY[preferredStrategy]
-                                                .description
-                                        }
-                                    </p>
-                                </div>
-                            </div>
 
                             <div className="glass-card rounded-2xl p-4 space-y-3 bg-dark-750 border border-dark-700">
                                 <div>
@@ -1047,12 +1023,14 @@ export default function App() {
                                 <button
                                     disabled={!jsonValid || !jsonData}
                                     onClick={() =>
-                                        runSchedule(jsonData, preferredStrategy).catch(
-                                            (e) =>
-                                                console.error(
-                                                    'Error running schedule:',
-                                                    e,
-                                                ),
+                                        runSchedule(
+                                            jsonData,
+                                            preferredStrategy,
+                                        ).catch((e) =>
+                                            console.error(
+                                                'Error running schedule:',
+                                                e,
+                                            ),
                                         )
                                     }
                                     className="btn-primary px-6 py-2.5 text-sm font-bold rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"

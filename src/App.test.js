@@ -15,15 +15,11 @@ test('renders phase controls for strategy and reset actions', () => {
 
     expect(screen.getByText(/schedule generator/i)).toBeInTheDocument();
 
-    // Check for strategy dropdown (Phase 8 multi-objective optimization)
-    const strategySelect = screen.getByRole('combobox', {
+    // Strategy selector hidden (CP-SAT is primary, strategy only used as fallback)
+    const strategySelect = screen.queryByRole('combobox', {
         name: /optimization strategy/i,
     });
-    expect(strategySelect).toBeInTheDocument();
-
-    // Verify options include legacy LPT/SPT and new profiles
-    expect(screen.getByText(/longest processing time/i)).toBeInTheDocument();
-    expect(screen.getByText(/shortest processing time/i)).toBeInTheDocument();
+    expect(strategySelect).not.toBeInTheDocument();
 
     expect(
         screen.getByRole('button', { name: /reset settings/i }),

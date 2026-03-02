@@ -140,19 +140,20 @@ export function useSolveSchedule() {
                 villageData,
                 config,
             );
-            if (result.success) {
+            if (result && result.success) {
                 setSchedule(result.schedule || []);
                 setError(null);
-                return result.schedule;
+                return result; // Return full result, not just schedule
             } else {
-                setError(result.error || 'Failed to solve schedule');
+                const errorMsg = result?.error || result?.status || 'Failed to solve schedule';
+                setError(errorMsg);
                 setSchedule(null);
-                return null;
+                return { success: false, error: errorMsg }; // Return proper error object
             }
         } catch (err) {
-            setError(err.message);
+            setError(err?.message || String(err));
             setSchedule(null);
-            return null;
+            return { success: false, error: err?.message || String(err) }; // Return proper error object
         } finally {
             setSolving(false);
         }
