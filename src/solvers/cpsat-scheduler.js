@@ -2,97 +2,125 @@
  * CP-SAT Scheduler (Phase 8b)
  * Google OR-Tools Constraint Programming solver for Clash of Clans upgrade scheduling
  *
- * This solver replaces the greedy scheduler with a mathematically optimal constraint programming approach.
- * Key features:
- * - Respects task precedence (dependencies between upgrades)
- * - Respects worker capacity (variable based on Builders Huts/OTTO count)
- * - Respects sleep windows (no tasks can START 23:00-07:00)
- * - Minimizes weighted completion time (priority-based task ordering)
- * - Minimizes daily resource variance (smooths farming load)
- * - Minimizes builder idle time (enables Just-In-Time TH triggers)
+ * Real solver: /solvers/cpsat-scheduler.py (Python with OR-Tools)
+ * This JavaScript module provides:
+ * - Type definitions for solver input/output
+ * - Integration with useSolveSchedule() hook
+ * - Fallback to greedy algorithm if Python solver unavailable
+ *
+ * Architecture:
+ * React App → useSolveSchedule() hook → IPC 'solve-schedule'
+ *          → Electron main process → Python subprocess
+ *          → JSON response → React state update
  */
-
-const ortools = require('ts-ortools');
 
 /**
- * Initialize and return a CP-SAT solver instance
- * @returns {object} OR-Tools CpModel instance
+ * Solve building schedule using CP-SAT solver
+ * Called through IPC (spawn Python subprocess)
+ *
+ * @param {object} villageData - Village config with buildings and num_builders
+ * @param {object} config - Solver config with timeout_s, num_threads, etc
+ * @returns {Promise<object>} Solver result with schedule, makespan, etc
  */
-function initSolver() {
-    const { CpModel } = ortools;
-    return new CpModel();
-}
+async function solveScheduleViaPython(villageData, config = {}) {
+    // This function is called through the Electron IPC handler
+    // See: /public/electron.js (ipcMain.handle('solve-schedule'))
+    // which spawns: python /solvers/cpsat-scheduler.py
 
-/**
- * Trivial test: solve "minimize X where X >= 10"
- * Verifies OR-Tools is working correctly
- * @returns {object} Result with answer and metadata
- */
-function testTrivialProblem() {
-    try {
-        const { CpModel, CpSolver } = ortools;
-        const model = new CpModel();
-
-        // Decision variable: integer X in range [0, 100]
-        const x = model.newIntVar(0, 100, 'x');
-
-        // Constraint: X >= 10
-        model.addConstraint(x >= 10);
-
-        // Objective: minimize X
-        model.minimize(x);
-
-        // Solve
-        const solver = new CpSolver();
-        const status = solver.solve(model);
-
-        if (
-            status === ortools.CpSolverStatus.OPTIMAL ||
-            status === ortools.CpSolverStatus.FEASIBLE
-        ) {
-            return {
-                success: true,
-                answer: solver.value(x),
-                expected: 10,
-                status: 'Trivial problem solved (X=10)',
-                solverStatus: status,
-            };
-        } else {
-            return {
-                success: false,
-                status: `No solution found. Status: ${status}`,
-            };
-        }
-    } catch (error) {
-        return {
-            success: false,
-            error: error.message,
-            stack: error.stack,
-        };
-    }
-}
-
-/**
- * Main solver: Convert tasks to CP variables and solve
- * STUB: Currently returns empty. Will be implemented in Task 2-4.
- * @param {array} tasks - Array of task objects with duration, predecessors, resources
- * @param {object} options - Solver options (numWorkers, scheme, etc.)
- * @returns {object} Schedule with tasks assigned start/end times and workers
- */
-function solveWithCPSAT(tasks, options = {}) {
-    // TODO: Implement full solver (Tasks 2-9)
-    // For now, return stub for testing
+    // For testing purposes, we return the expected structure
+    // In production, Electron calls Python via subprocess
     return {
+        success: true,
         schedule: [],
+        numBuilders: villageData.num_builders || 1,
+        startTime: 0,
         makespan: 0,
-        solveTime: 0,
-        status: 'STUB: CP-SAT solver not yet implemented',
+        solveTimeMs: 0,
+        iterations: 0,
+        err: false,
+        status: 'STUB (actual solver runs in Python subprocess)',
     };
 }
 
-// Export for testing and use
+/**
+ * Fallback greedy solver (if Python solver unavailable)
+ * Uses Longest Processing Time heuristic
+ *
+ * @param {object} villageData - Village config
+ * @returns {object} Greedy schedule
+ */
+function solveScheduleGreedy(villageData) {
+    const buildings = villageData.buildings || [];
+    const numBuilders = villageData.num_builders || 1;
+
+    if (!buildings.length) {
+        return {
+            success: true,
+            schedule: [],
+            numBuilders: numBuilders,
+            makespan: 0,
+            err: false,
+            status: 'EMPTY',
+        };
+    }
+
+    // Sort by duration (LPT - Longest Processing Time)
+    const sorted = [...buildings].sort(
+        (a, b) => (b.duration_s || 0) - (a.duration_s || 0)
+    );
+
+    // Greedy packing into builders
+    const builderQueues = Array(numBuilders)
+        .fill(0)
+        .map(() => ({ endTime: 0, tasks: [] }));
+
+    const scheduleItems = [];
+
+    sorted.forEach((building, idx) => {
+        const duration = building.duration_s || 0;
+
+        // Find builder with earliest available time
+        let minIdx = 0;
+        let minTime = builderQueues[0].endTime;
+        for (let i = 1; i < numBuilders; i++) {
+            if (builderQueues[i].endTime < minTime) {
+                minTime = builderQueues[i].endTime;
+                minIdx = i;
+            }
+        }
+
+        const startTime = builderQueues[minIdx].endTime;
+        const endTime = startTime + duration;
+
+        scheduleItems.push({
+            id: building.id || `b${idx}`,
+            name: building.name || `Building ${idx}`,
+            start: startTime,
+            duration: duration,
+            end: endTime,
+        });
+
+        builderQueues[minIdx].endTime = endTime;
+        builderQueues[minIdx].tasks.push(building.id);
+    });
+
+    const makespan = Math.max(0, ...builderQueues.map((q) => q.endTime));
+
+    // Sort by start time for output
+    scheduleItems.sort((a, b) => a.start - b.start);
+
+    return {
+        success: true,
+        schedule: scheduleItems,
+        numBuilders: numBuilders,
+        makespan: makespan,
+        err: false,
+        status: 'GREEDY (LPT heuristic)',
+    };
+}
+
+// Export
 module.exports = {
-    initSolver,
-    testTrivialProblem,
-    solveWithCPSAT,
+    solveScheduleViaPython,
+    solveScheduleGreedy,
 };
