@@ -105,9 +105,12 @@ function solveScheduleGreedy(villageData) {
         scheduleItems.push({
             id: building.id || `b${idx}`,
             name: building.name || `Building ${idx}`,
+            level: building.level || building.lvl || 0, // Include level from building data
             start: startTime,
             duration: duration,
             end: endTime,
+            worker: minIdx, // Track which builder this task is assigned to
+            iter: 0, // Iteration counter for task tracking
         });
 
         builderQueues[minIdx].endTime = endTime;
