@@ -549,6 +549,7 @@ export default function App() {
             const rawBuildings = (jD.buildings || []).map((b, idx) => ({
                 id: b.data || `b${idx}`,
                 name: mapping[b.data] || `Building ${idx}`, // Look up building name from mapping
+                lvl: b.lvl || 0, // Include building level for timeline keys
                 duration_s: b.timer || 0, // Use timer field from raw JSON
             }));
 
@@ -557,7 +558,11 @@ export default function App() {
                 num_builders: numBuilders,
             };
 
-            console.log('🔵 Calling CP-SAT solver...', villageDataForSolver.buildings?.slice(0, 3), `(${villageDataForSolver.buildings?.length} total)`);
+            console.log(
+                '🔵 Calling CP-SAT solver...',
+                villageDataForSolver.buildings?.slice(0, 3),
+                `(${villageDataForSolver.buildings?.length} total)`,
+            );
 
             // Solver configuration
             const solverConfig = {
@@ -680,8 +685,10 @@ export default function App() {
             scheduleItems.forEach((t) => {
                 colorForId(t.id);
             });
-            
-            console.log(`✅ Schedule generated: ${scheduleItems.length} tasks, ${Math.round(runDurationMs)}ms`);
+
+            console.log(
+                `✅ Schedule generated: ${scheduleItems.length} tasks, ${Math.round(runDurationMs)}ms`,
+            );
         } catch (error) {
             console.error('Error calling CP-SAT solver:', error);
             setErr(true);
